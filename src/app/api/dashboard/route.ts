@@ -1,0 +1,391 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import {
+    getTodayISO,
+    formatDateISO,
+    getDatesInRangeToToday,
+    getRequiredRepsForDate,
+    getFineAmountForMonth,
+    FINE_START_DATE,
+    isLastDayOfMonth
+} from "@/lib/challenge";
+import { SPECIAL_DAYS } from "@/config/specialDays";
+
+import { initBadges } from "@/lib/badges";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(req: Request) {
+    try {
+        await initBadges();
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.id) {
+            return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(req.url);
+        const selectedDate = searchParams.get("date") || getTodayISO();
+        const today = getTodayISO();
+        const userId = session.user.id;
+
+        // --- 1. Fetch data for last 30 days (personal + group) ---
+        const last30DaysRange = [];
+        const d30 = new Date();
+        d30.setDate(d30.getDate() - 29);
+        const startDate30 = formatDateISO(d30);
+
+        const allUsers = (await (prisma.user as any).findMany({
+            include: {
+                sets: true,
+                fines: true,
+                sallyUps: true,
+                medicalCertificates: true,
+                potEvents: true
+            }
+        })) as any[];
+
+        // --- 2. Lazy Fine Calculation ---
+        const fineDates = getDatesInRangeToToday(FINE_START_DATE).filter(d => d < today);
+
+        for (const user of allUsers) {
+            // Rule: No more fines if buyout is paid (for FUTURE dates relative to payment, 
+            // but the requirement says "stoppe toute génération d'amende FUTURE. Les amendes passées restent dues.")
+            // Since generation is lazy, we check if the date being checked is after or equal to buyout date if it exists.
+            // Wait, requirement says "buyoutPaid = true -> plus aucune amende FUTURE. Les passées restent dues."
+            // If we are checking date 'd', and it's missing, but user has buyoutPaid = true, we skip it.
+
+            if (user.buyoutPaid) continue;
+
+            for (const date of fineDates) {
+                // Check medical exemption
+                const isExempt = user.medicalCertificates.some((cert: any) =>
+                    date >= cert.startDateISO && date <= cert.endDateISO
+                );
+                if (isExempt) continue;
+
+                const reqReps = getRequiredRepsForDate(date);
+                const userSetsForDate = user.sets.filter((s: any) => s.date === date);
+                const totalReps = userSetsForDate.reduce((sum: number, s: any) => sum + s.reps, 0);
+
+                if (totalReps < reqReps) {
+                    const alreadyExists = user.fines.find((f: any) => f.date === date);
+                    if (!alreadyExists) {
+                        await (prisma.fineRecord as any).create({
+                            data: {
+                                userId: user.id,
+                                date,
+                                amountEur: getFineAmountForMonth(date),
+                                status: "unpaid"
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+
+        // Re-fetch current user after fines (or just use local state if lazy)
+        const currentUser = allUsers.find(u => u.id === userId) as any;
+
+        // --- 3. Dashboard Aggregation ---
+
+        // --- 3. Dashboard Aggregation ---
+
+        const leaderboard = allUsers.map(u => {
+            const uSets = u.sets || [];
+            const totalPushupsAllTime = uSets.filter((s: any) => s.exercise === "PUSHUP").reduce((sum: number, s: any) => sum + s.reps, 0);
+            const totalPullupsAllTime = uSets.filter((s: any) => s.exercise === "PULLUP").reduce((sum: number, s: any) => sum + s.reps, 0);
+            const totalSquatsAllTime = uSets.filter((s: any) => s.exercise === "SQUAT").reduce((sum: number, s: any) => sum + s.reps, 0);
+            const totalRepsAllTime = totalPushupsAllTime + totalPullupsAllTime + totalSquatsAllTime;
+
+            const dates30 = getDatesInRangeToToday(startDate30);
+            let completeCount = 0;
+            let currentStreak = 0;
+            let totalPerfectDays = 0;
+            let maxSingleSet = Math.max(0, ...uSets.map((s: any) => s.reps));
+            let streakBroken = false;
+
+            for (let i = dates30.length - 1; i >= 0; i--) {
+                const d = dates30[i];
+                if (d === today) continue;
+
+                const daySets = uSets.filter((s: any) => s.date === d);
+                const dayTotal = daySets.reduce((sum: number, s: any) => sum + s.reps, 0);
+                const req = getRequiredRepsForDate(d);
+                const isComp = dayTotal >= req;
+
+                if (isComp) {
+                    completeCount++;
+                    totalPerfectDays++;
+                    if (!streakBroken) currentStreak++;
+                } else {
+                    streakBroken = true;
+                }
+            }
+
+            return {
+                id: u.id,
+                nickname: u.nickname,
+                buyoutPaid: u.buyoutPaid,
+                completionRate: (completeCount / Math.max(1, dates30.length - 1)) * 100,
+                streakCurrent: currentStreak,
+                totalPerfectDays,
+                maxSingleSet,
+                totalRepsAllTime,
+                totalPushupsAllTime,
+                totalPullupsAllTime,
+                totalSquatsAllTime,
+                repsToday: uSets.filter((s: any) => s.date === today).reduce((sum: number, s: any) => sum + s.reps, 0),
+                finesDueEur: (u.fines || []).filter((f: any) => f.status === "unpaid").reduce((sum: number, f: any) => sum + f.amountEur, 0),
+                potEventsEur: (u.potEvents || []).reduce((sum: number, e: any) => sum + e.amountEur, 0),
+                sets: uSets
+            };
+        }).sort((a, b) => b.completionRate - a.completionRate || b.streakCurrent - a.streakCurrent || b.totalRepsAllTime - a.totalRepsAllTime);
+
+        // Records (Enhanced Tie-break: Reps > User Total Exo > Date)
+        const periods = [
+            { id: "day", filter: (s: any) => s.date === today },
+            { id: "week", filter: (s: any) => s.date >= formatDateISO(new Date(Date.now() - 6 * 86400000)) },
+            { id: "month", filter: (s: any) => s.date.startsWith(today.substring(0, 7)) },
+            { id: "year", filter: (s: any) => s.date.startsWith(today.substring(0, 4)) },
+        ];
+        const exTypes = ["PUSHUP", "PULLUP", "SQUAT"] as const;
+        const recordsData: any = {};
+
+        for (const p of periods) {
+            recordsData[p.id] = { badge: p.id === "day" ? "🥉" : p.id === "week" ? "🥈" : p.id === "month" ? "🥇" : "💎" };
+            for (const ex of exTypes) {
+                const periodSets = leaderboard.flatMap(u => (u.sets || []).filter((s: any) => s.exercise === ex && p.filter(s)).map((s: any) => ({
+                    ...s,
+                    nickname: u.nickname,
+                    userTotalEx: ex === "PUSHUP" ? u.totalPushupsAllTime : ex === "PULLUP" ? u.totalPullupsAllTime : u.totalSquatsAllTime
+                })));
+
+                if (periodSets.length > 0) {
+                    periodSets.sort((a, b) => b.reps - a.reps || b.userTotalEx - a.userTotalEx || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                    recordsData[p.id][ex.toLowerCase() + "s"] = { winner: periodSets[0].nickname, maxReps: periodSets[0].reps };
+                } else {
+                    recordsData[p.id][ex.toLowerCase() + "s"] = { winner: "Pas de record", maxReps: 0 };
+                }
+            }
+        }
+
+        // Trophies Configuration (V3.1 Expansion)
+        const milestonePaliers = [1000, 2000, 5000, 10000, 20000, 50000];
+        const allTrophyBuckets = [
+            ...milestonePaliers.map(p => ({ id: `pushups_${p}`, threshold: p, ex: "PUSHUP", label: `${p} Pompes`, emoji: p >= 10000 ? "💎" : "💪" })),
+            ...milestonePaliers.map(p => ({ id: `pullups_${p}`, threshold: p, ex: "PULLUP", label: `${p} Tractions`, emoji: p >= 5000 ? "🦍" : "🧗" })),
+            ...milestonePaliers.map(p => ({ id: `squats_${p}`, threshold: p, ex: "SQUAT", label: `${p} Squats`, emoji: p >= 10000 ? "🦾" : "🦵" })),
+            { id: "streak_7", type: "streak", threshold: 7, label: "7j d'Assiduité", emoji: "🌱" },
+            { id: "streak_30", type: "streak", threshold: 30, label: "30j d'Assiduité", emoji: "🔥" },
+            { id: "streak_100", type: "streak", threshold: 100, label: "100j d'Assiduité", emoji: "👑" },
+            { id: "perfect_10", type: "perfect", threshold: 10, label: "10 Jours Parfaits", emoji: "🎯" },
+            { id: "flex_50", type: "flex", threshold: 50, label: "Flex (+50 bonus)", emoji: "🚀" }
+        ];
+
+        const currentUserLB = leaderboard.find(u => u.id === userId);
+        const earnedTrophies: any[] = [];
+        const availableTrophies: any[] = [];
+
+        for (const t of allTrophyBuckets) {
+            let earnedBy: string[] = [];
+            leaderboard.forEach(u => {
+                let hasIt = false;
+                const trophy = t as any;
+                if (trophy.ex) {
+                    const total = trophy.ex === "PUSHUP" ? u.totalPushupsAllTime : trophy.ex === "PULLUP" ? u.totalPullupsAllTime : u.totalSquatsAllTime;
+                    if (total >= t.threshold) hasIt = true;
+                } else if (trophy.type === "streak") {
+                    if (u.streakCurrent >= t.threshold) hasIt = true;
+                } else if (trophy.type === "perfect") {
+                    if (u.totalPerfectDays >= t.threshold) hasIt = true;
+                } else if (trophy.type === "flex") {
+                    const hasFlex = (u.sets || []).some((s: any) => {
+                        const dayTotal = (u.sets || []).filter((ss: any) => ss.date === s.date).reduce((sum: number, ss: any) => sum + ss.reps, 0);
+                        return dayTotal >= (getRequiredRepsForDate(s.date) + 50);
+                    });
+                    if (hasFlex) hasIt = true;
+                }
+
+                if (hasIt) earnedBy.push(u.nickname);
+            });
+
+            if (earnedBy.length > 0) earnedTrophies.push({ ...t, winners: earnedBy });
+            else availableTrophies.push(t);
+        }
+
+        // Special Days 2026 Logic
+        const earnedSpecialDays: any[] = [];
+        const availableSpecialDays: any[] = [];
+        Object.entries(SPECIAL_DAYS).forEach(([date, info]) => {
+            const winners = leaderboard.filter(u => {
+                const dayTotal = (u.sets || []).filter((s: any) => s.date === date).reduce((sum: number, s: any) => sum + s.reps, 0);
+                return dayTotal >= getRequiredRepsForDate(date);
+            }).map(u => u.nickname);
+
+            if (winners.length > 0) earnedSpecialDays.push({ date, ...info, winners });
+            else availableSpecialDays.push({ date, ...info });
+        });
+
+        // Cagnotte Rewards Suggestions
+        const potEur = leaderboard.reduce((sum, u) => sum + u.finesDueEur + (u.potEventsEur || 0), 0);
+        const rewardsTiers = [
+            { min: 0, label: "Encore un effort 😄" },
+            { min: 2, label: "Un pain au chocolat" },
+            { min: 5, label: "Un paquet de chips" },
+            { min: 10, label: "Une tournée de softs" },
+            { min: 20, label: "Un apéro sympa" },
+            { min: 50, label: "Un gros apéro" },
+            { min: 100, label: "Un resto simple" },
+            { min: 200, label: "10 Pizzas !" },
+            { min: 500, label: "Gros resto + boissons" },
+            { min: 1000, label: "Un week-end en groupe" },
+            { min: 2000, label: "Gros événement" },
+            { min: 5000, label: "Week-end luxe" },
+            { min: 10000, label: "Voyage de groupe ✈️" },
+        ];
+        const currentReward = [...rewardsTiers].reverse().find(r => potEur >= r.min) || rewardsTiers[0];
+        const nextReward = rewardsTiers.find(r => r.min > potEur);
+
+        // Graphs (Simplified)
+        const myDaily30 = getDatesInRangeToToday(startDate30).map(date => {
+            const daySets = (currentUserLB?.sets || []).filter((s: any) => s.date === date);
+            return {
+                date,
+                pushups: daySets.filter((s: any) => s.exercise === "PUSHUP").reduce((sum: number, s: any) => sum + s.reps, 0),
+                pullups: daySets.filter((s: any) => s.exercise === "PULLUP").reduce((sum: number, s: any) => sum + s.reps, 0),
+                squats: daySets.filter((s: any) => s.exercise === "SQUAT").reduce((sum: number, s: any) => sum + s.reps, 0),
+                total: daySets.reduce((sum: number, s: any) => sum + s.reps, 0)
+            };
+        });
+
+        // --- 4. Badge Competition Data ---
+        const badgeOwnerships = await (prisma as any).badgeOwnership.findMany({
+            include: {
+                badge: true,
+                currentUser: { select: { nickname: true } }
+            }
+        });
+
+        const recentEvents = (await (prisma as any).badgeEvent.findMany({
+            take: 30,
+            orderBy: { createdAt: "desc" },
+            include: {
+                badge: true,
+                fromUser: { select: { nickname: true } },
+                toUser: { select: { nickname: true } }
+            }
+        })) || [];
+
+        // Logic for "Badges in Danger" (Challengers #2)
+        const dangerList: any[] = [];
+        badgeOwnerships.forEach((bo: any) => {
+            if (!bo.currentUserId || bo.locked) return;
+
+            // Find #2. We can look at our 'leaderboard' data (which already has some aggregated stats)
+            // or perform a specific search. For performance, let's use what we have.
+            const def = bo.badge;
+            let challenger: any = null;
+            let challengerValue = 0;
+
+            leaderboard.forEach(u => {
+                if (u.id === bo.currentUserId) return;
+
+                let val = 0;
+                if (def.metricType === "MAX_SET") {
+                    if (def.exerciseScope === "PUSHUPS") val = u.totalPushupsAllTime; // Wait, metric should be max single set
+                    // Re-calculate or use u.maxSingleSet/u.sets
+                    const uSets = (u as any).sets || [];
+                    if (def.exerciseScope === "PUSHUPS") val = Math.max(0, ...uSets.filter((s: any) => s.exercise === "PUSHUP").map((s: any) => s.reps));
+                    else if (def.exerciseScope === "PULLUPS") val = Math.max(0, ...uSets.filter((s: any) => s.exercise === "PULLUP").map((s: any) => s.reps));
+                    else if (def.exerciseScope === "SQUATS") val = Math.max(0, ...uSets.filter((s: any) => s.exercise === "SQUAT").map((s: any) => s.reps));
+                    else val = u.maxSingleSet;
+                } else if (def.metricType === "SERIES_COUNT") {
+                    const uSets = (u as any).sets || [];
+                    const exo = def.exerciseScope === "PUSHUPS" ? "PUSHUP" : def.exerciseScope === "PULLUPS" ? "PULLUP" : "SQUAT";
+                    val = uSets.filter((s: any) => s.exercise === exo && s.reps === def.seriesTarget).length;
+                }
+                // Add more metric types if needed (BONUS_STREAK etc.)
+
+                if (val > challengerValue) {
+                    challengerValue = val;
+                    challenger = u;
+                }
+            });
+
+            if (challenger && bo.currentValue > 0) {
+                const diff = bo.currentValue - challengerValue;
+                const percent = (challengerValue / bo.currentValue);
+                if (percent >= 0.9 || diff <= 2) {
+                    dangerList.push({
+                        badgeKey: bo.badgeKey,
+                        badgeName: bo.badge.name,
+                        emoji: bo.badge.emoji,
+                        holder: bo.currentUser?.nickname,
+                        challenger: challenger.nickname,
+                        currentValue: bo.currentValue,
+                        challengerValue,
+                        diff
+                    });
+                }
+            }
+        });
+
+        return NextResponse.json({
+            todayISO: today,
+            selectedDateISO: selectedDate,
+            requiredReps: {
+                selected: getRequiredRepsForDate(selectedDate),
+                today: getRequiredRepsForDate(today)
+            },
+            setsSelected: {
+                pushups: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PUSHUP").map((s: any) => s.reps),
+                pullups: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PULLUP").map((s: any) => s.reps),
+                squats: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "SQUAT").map((s: any) => s.reps),
+            },
+            totalsSelected: {
+                pushups: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PUSHUP").reduce((sum: number, s: any) => sum + s.reps, 0),
+                pullups: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PULLUP").reduce((sum: number, s: any) => sum + s.reps, 0),
+                squats: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "SQUAT").reduce((sum: number, s: any) => sum + s.reps, 0),
+                total: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate).reduce((sum: number, s: any) => sum + s.reps, 0)
+            },
+            leaderboard: leaderboard.map(({ sets, ...rest }) => rest),
+            records: recordsData,
+            badges: {
+                earned: { trophies: earnedTrophies, specialDays: earnedSpecialDays },
+                available: { trophies: availableTrophies, specialDays: availableSpecialDays },
+                competitive: {
+                    ownerships: badgeOwnerships,
+                    events: recentEvents,
+                    danger: dangerList
+                }
+            },
+            cagnotte: {
+                enabled: today >= FINE_START_DATE,
+                potEur,
+                currentReward,
+                nextReward,
+                finesList: leaderboard.filter(u => u.finesDueEur > 0).map(u => ({ nickname: u.nickname, amount: u.finesDueEur }))
+            },
+            sallyUp: {
+                enabledForSelectedDate: isLastDayOfMonth(selectedDate),
+                selectedDateReps: (allUsers.find(u => u.id === userId)?.sallyUps || []).find((s: any) => s.date === selectedDate)?.seconds || 0,
+                monthPodium: allUsers.flatMap(u => (u.sallyUps || []).filter((s: any) => s.date.startsWith(today.substring(0, 7))).map((s: any) => ({
+                    nickname: u.nickname,
+                    reps: s.seconds,
+                    totalPushupsAllTime: (u.sets || []).filter((ss: any) => ss.exercise === "PUSHUP").reduce((sum: number, ss: any) => sum + ss.reps, 0),
+                    createdAt: s.createdAt
+                }))).sort((a: any, b: any) => b.reps - a.reps || b.totalPushupsAllTime - a.totalPushupsAllTime || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).slice(0, 3)
+            },
+            graphs: {
+                myDaily: myDaily30
+            }
+        });
+
+    } catch (error) {
+        console.error("Dashboard V3 Error:", error);
+        return NextResponse.json({ message: "Erreur serveur" }, { status: 500 });
+    }
+}
