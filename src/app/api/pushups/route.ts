@@ -23,25 +23,29 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: "Date invalide" }, { status: 400 })
         }
 
-        // Upsert semantic: Create if it doesn't exist, update if it does.
-        const pushupLog = await prisma.pushupLog.upsert({
-            where: {
-                userId_date: {
-                    userId: session.user.id,
-                    date: date,
-                }
-            },
-            update: {
-                count: count,
-            },
-            create: {
-                userId: session.user.id,
-                date: date,
-                count: count,
-            }
-        })
+        const userId = session.user.id;
 
-        return NextResponse.json({ log: pushupLog, message: "Pompes enregistrées pour aujourd'hui" }, { status: 200 })
+        // Atomic delete and recreate for this specific date and exercise type
+        const result = await prisma.$transaction(async (tx) => {
+            await tx.exerciseSet.deleteMany({
+                where: {
+                    userId,
+                    date: date,
+                    exercise: "PUSHUP",
+                },
+            });
+
+            return await tx.exerciseSet.create({
+                data: {
+                    userId,
+                    date: date,
+                    exercise: "PUSHUP",
+                    reps: count,
+                },
+            });
+        });
+
+        return NextResponse.json({ log: result, message: "Pompes enregistrées pour aujourd'hui" }, { status: 200 })
     } catch (error) {
         console.error(error)
         return NextResponse.json(

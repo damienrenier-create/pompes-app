@@ -28,36 +28,19 @@ export async function POST(req: Request) {
         const userId = session.user.id;
         const requiredReps = getRequiredRepsForDate(targetDate);
 
-        // 1. Upsert DailyLog for targetDate
-        const dailyLog = await prisma.dailyLog.upsert({
-            where: {
-                userId_date: {
-                    userId,
-                    date: targetDate,
-                },
-            },
-            update: {},
-            create: {
-                userId,
-                date: targetDate,
-            },
-        });
-
-        // 2. Prepare new sets
+        // 1. Prepare new sets
         const newSetsData: any[] = [];
 
         const processExo = (exoSets: number[], type: string) => {
             if (Array.isArray(exoSets)) {
-                exoSets.forEach((reps, index) => {
+                exoSets.forEach((reps) => {
                     const val = Math.min(500, Math.max(0, Number(reps) || 0));
                     if (val > 0) {
                         newSetsData.push({
                             userId,
-                            date: targetDate, // Use targetDate
+                            date: targetDate,
                             exercise: type,
                             reps: val,
-                            position: index,
-                            dailyLogId: dailyLog.id,
                         });
                     }
                 });
@@ -68,7 +51,7 @@ export async function POST(req: Request) {
         processExo(sets.pullups, "PULLUP");
         processExo(sets.squats, "SQUAT");
 
-        // 3. atomic delete and recreate sets for that user and that date
+        // 2. atomic delete and recreate sets for that user and that date
         await prisma.$transaction([
             prisma.exerciseSet.deleteMany({
                 where: { userId, date: targetDate },
@@ -78,7 +61,7 @@ export async function POST(req: Request) {
             }),
         ]);
 
-        // 4. Calculate stats for response
+        // 3. Calculate stats for response
         const totals = {
             pushups: sets.pushups?.reduce((a: number, b: number) => a + (Number(b) || 0), 0) || 0,
             pullups: sets.pullups?.reduce((a: number, b: number) => a + (Number(b) || 0), 0) || 0,
