@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && prisma migrate deploy && next build",
+    "build": "npx prisma generate --schema=./prisma/schema.prisma && npx prisma migrate deploy --schema=./prisma/schema.prisma && next build",
     "start": "next start",
     "lint": "eslint",
-    "reset:db": "npx prisma db push --accept-data-loss && npx prisma generate"
+    "reset:db": "npx prisma db push --accept-data-loss --schema=./prisma/schema.prisma && npx prisma generate --schema=./prisma/schema.prisma"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
