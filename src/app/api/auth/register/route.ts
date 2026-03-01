@@ -5,6 +5,8 @@ import { hash } from "bcryptjs"
 export const dynamic = "force-dynamic"
 
 export async function POST(req: Request) {
+    console.log("[DB_URL_SCHEME]", (process.env.DATABASE_URL || "").split(":")[0]);
+    console.log("[DIRECT_URL_SCHEME]", (process.env.DIRECT_URL || "").split(":")[0]);
     try {
         const { email, code, nickname } = await req.json()
 
