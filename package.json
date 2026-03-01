@@ -7,7 +7,8 @@
     "build": "npx prisma generate --schema=./prisma/schema.prisma && npx prisma migrate deploy --schema=./prisma/schema.prisma && next build",
     "start": "next start",
     "lint": "eslint",
-    "reset:db": "npx prisma db push --accept-data-loss --schema=./prisma/schema.prisma && npx prisma generate --schema=./prisma/schema.prisma"
+    "reset:db": "npx prisma db push --accept-data-loss --schema=./prisma/schema.prisma && npx prisma generate --schema=./prisma/schema.prisma",
+    "postinstall": "prisma generate --schema=./prisma/schema.prisma"
   },
   "prisma": {
     "schema": "prisma/schema.prisma"
