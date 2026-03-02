@@ -84,6 +84,7 @@ const DEFAULT_DASHBOARD_DATA: DashboardData = {
 }
 
 export default function ChallengeDashboard() {
+    const router = useRouter()
     const { data: session } = useSession()
     const [data, setData] = useState<DashboardData>(DEFAULT_DASHBOARD_DATA)
     const [loading, setLoading] = useState(true)
@@ -148,6 +149,14 @@ export default function ChallengeDashboard() {
     }
 
     const getTodayISO = () => new Date().toISOString().split('T')[0]
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search)
+        const tab = params.get('tab')
+        if (tab && ['saisie', 'graphs', 'cagnotte', 'trophees', 'km', 'zen'].includes(tab)) {
+            setActiveTab(tab as any)
+        }
+    }, [router]) // React on navigation
 
     useEffect(() => {
         fetchData()
@@ -313,13 +322,6 @@ export default function ChallengeDashboard() {
                     <div>
                         <h1 className="text-3xl font-black italic tracking-tighter text-blue-600 leading-none">POMPES APP</h1>
                         <p className="text-[10px] font-black text-gray-400 mt-1 uppercase tracking-widest">Version 3.1 • Clean State</p>
-                    </div>
-                    <div className="flex bg-gray-200 p-1 rounded-xl overflow-x-auto no-scrollbar">
-                        {(['saisie', 'graphs', 'cagnotte', 'trophees', ...(showKM ? ['km'] : []), ...(showStretching ? ['zen'] : [])] as const).map(t => (
-                            <button key={t} onClick={() => setActiveTab(t as any)} className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all whitespace-nowrap ${activeTab === t ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>
-                                {t === 'saisie' ? 'LOGS' : t.toUpperCase()}
-                            </button>
-                        ))}
                     </div>
                 </div>
 
