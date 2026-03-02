@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 
 interface DashboardData {
@@ -85,6 +85,7 @@ const DEFAULT_DASHBOARD_DATA: DashboardData = {
 
 export default function ChallengeDashboard() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const { data: session } = useSession()
     const [data, setData] = useState<DashboardData>(DEFAULT_DASHBOARD_DATA)
     const [loading, setLoading] = useState(true)
@@ -151,12 +152,11 @@ export default function ChallengeDashboard() {
     const getTodayISO = () => new Date().toISOString().split('T')[0]
 
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search)
-        const tab = params.get('tab')
+        const tab = searchParams.get('tab')
         if (tab && ['saisie', 'graphs', 'cagnotte', 'trophees', 'km', 'zen'].includes(tab)) {
             setActiveTab(tab as any)
         }
-    }, [router]) // React on navigation
+    }, [searchParams]) // React on search params change
 
     useEffect(() => {
         fetchData()
