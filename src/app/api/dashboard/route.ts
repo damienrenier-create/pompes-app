@@ -67,7 +67,7 @@ export async function GET(req: Request) {
             let completeCount = 0;
             let currentStreak = 0;
             let totalPerfectDays = 0;
-            let maxSingleSet = Math.max(0, ...uSets.map((s: any) => s.reps));
+            const maxSingleSet = Math.max(0, ...uSets.map((s: any) => s.reps));
             let streakBroken = false;
 
             for (let i = dates30.length - 1; i >= 0; i--) {
@@ -154,7 +154,7 @@ export async function GET(req: Request) {
         const availableTrophies: any[] = [];
 
         for (const t of allTrophyBuckets) {
-            let earnedBy: string[] = [];
+            const earnedBy: string[] = [];
             leaderboard.forEach(u => {
                 let hasIt = false;
                 const trophy = t as any;

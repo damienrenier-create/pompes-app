@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export default function ProfilePage() {
     const { data: session, update } = useSession()
@@ -312,7 +313,7 @@ export default function ProfilePage() {
                                 <div className="text-[10px] text-gray-400 font-bold uppercase">Série</div>
                             </div>
                         </div>
-                        <p className="text-[10px] text-center text-gray-400 mt-6 italic">Retrouvez votre progression détaillée sur le <a href="/" className="text-blue-500 font-black hover:underline">tableau de bord</a>.</p>
+                        <p className="text-[10px] text-center text-gray-400 mt-6 italic">Retrouvez votre progression détaillée sur le <Link href="/" className="text-blue-500 font-black hover:underline">tableau de bord</Link>.</p>
                     </div>
 
                     <div className="mt-12 pt-8 border-t border-gray-100">
