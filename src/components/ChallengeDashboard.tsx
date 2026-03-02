@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -87,15 +88,17 @@ export default function ChallengeDashboard() {
     const [data, setData] = useState<DashboardData>(DEFAULT_DASHBOARD_DATA)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
-    const [activeTab, setActiveTab] = useState<'saisie' | 'graphs' | 'cagnotte' | 'trophees'>('saisie')
+    const [activeTab, setActiveTab] = useState<'saisie' | 'graphs' | 'cagnotte' | 'trophees' | 'km' | 'zen'>('saisie')
     const [selectedDate, setSelectedDate] = useState<string>(DEFAULT_DASHBOARD_DATA.selectedDateISO)
     const lastFetchTime = useRef<number>(Date.now())
-    const [localSets, setLocalSets] = useState<{ pushups: number[]; pullups: number[]; squats: number[] }>({
-        pushups: [10],
-        pullups: [0],
-        squats: [0],
+    const [localSets, setLocalSets] = useState<{ pushups: (number | "")[]; pullups: (number | "")[]; squats: (number | "")[] }>({
+        pushups: [""],
+        pullups: [""],
+        squats: [""],
     })
     const [sallyReps, setSallyReps] = useState<number>(0)
+    const [showHonorPopup, setShowHonorPopup] = useState<{ badge: any; type: string } | null>(null)
+    const [honorChecked, setHonorChecked] = useState(false)
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
     const lastInputRef = useRef<HTMLInputElement | null>(null)
@@ -120,7 +123,9 @@ export default function ChallengeDashboard() {
                         new Date(ev.createdAt).getTime() > lastFetchTime.current
                     )
                     if (latestSteal) {
-                        showToast(`On t'a volé [${latestSteal.badge?.name}] 😈`, 'error')
+                        // Increased display time for the "Devil" message (A11)
+                        setToast({ message: `On t'a volé [${latestSteal.badge?.name}] 😈`, type: 'error' })
+                        setTimeout(() => setToast(null), 8000)
                     }
                 }
                 lastFetchTime.current = Date.now()
@@ -130,9 +135,9 @@ export default function ChallengeDashboard() {
                 setSallyReps(d.sallyUp?.selectedDateReps || 0)
 
                 setLocalSets({
-                    pushups: d.setsSelected?.pushups?.length > 0 ? d.setsSelected.pushups : [10],
-                    pullups: d.setsSelected?.pullups?.length > 0 ? d.setsSelected.pullups : [0],
-                    squats: d.setsSelected?.squats?.length > 0 ? d.setsSelected.squats : [0],
+                    pushups: d.setsSelected?.pushups?.length > 0 ? d.setsSelected.pushups : [""],
+                    pullups: d.setsSelected?.pullups?.length > 0 ? d.setsSelected.pullups : [""],
+                    squats: d.setsSelected?.squats?.length > 0 ? d.setsSelected.squats : [""],
                 })
             }
         } catch (err) {
@@ -155,8 +160,8 @@ export default function ChallengeDashboard() {
 
     const addSet = (type: 'pushups' | 'pullups' | 'squats') => {
         const current = localSets[type] || []
-        const lastVal = current.length > 0 ? current[current.length - 1] : (type === 'pushups' ? 10 : 0)
-        setLocalSets({ ...localSets, [type]: [...current, lastVal] })
+        // Start empty by default (A4)
+        setLocalSets({ ...localSets, [type]: [...current, ""] })
         setTimeout(() => lastInputRef.current?.focus(), 10)
     }
 
@@ -166,11 +171,57 @@ export default function ChallengeDashboard() {
 
     const handleSetChange = (type: 'pushups' | 'pullups' | 'squats', index: number, val: string) => {
         const newSets = [...(localSets[type] || [])]
-        newSets[index] = parseInt(val) || 0
+        if (val === "") {
+            newSets[index] = ""
+        } else {
+            newSets[index] = parseInt(val) || 0
+        }
+        setLocalSets({ ...localSets, [type]: newSets })
+    }
+
+    const adjustSet = (type: 'pushups' | 'pullups' | 'squats', index: number, delta: number) => {
+        const newSets = [...(localSets[type] || [])]
+        const current = Number(newSets[index]) || 0
+        newSets[index] = Math.max(0, current + delta)
         setLocalSets({ ...localSets, [type]: newSets })
     }
 
     const saveLogs = async () => {
+        // Validation: prevent empty or <= 0 (A4)
+        const allReps = [...localSets.pushups, ...localSets.pullups, ...localSets.squats].map(r => Number(r) || 0);
+        const total = allReps.reduce((a, b) => a + b, 0);
+
+        if (total <= 0) {
+            showToast("Veuillez entrer au moins une répétition", "error");
+            return;
+        }
+
+        // Potential badge check (A12) - Client side preview
+        const willEarnCompetitive = data.badges.competitive.ownerships.some(bo => {
+            if (bo.locked) return false;
+            const def = bo.badge;
+            const currentTotalAll = data.leaderboard.find(u => (u as any).id === (session?.user as any)?.id)?.totalRepsAllTime || 0;
+            const newTotalAll = currentTotalAll + total;
+
+            if (def.metricType === "MAX_SET") {
+                const maxInLocal = Math.max(0, ...allReps);
+                return maxInLocal > bo.currentValue;
+            }
+            // Simple check for main competitive metrics
+            return false;
+        });
+
+        if (willEarnCompetitive && !honorChecked) {
+            setShowHonorPopup({ badge: null, type: 'pre-save' });
+            return;
+        }
+
+        // High reps confirmation (A4)
+        const highRepSet = allReps.find(r => r >= 200);
+        if (highRepSet && !confirm(`Vous avez saisi une série de ${highRepSet} répétitions. Confirmer ?`)) {
+            return;
+        }
+
         setSaving(true)
         try {
             const res = await fetch("/api/logs/save", {
@@ -180,6 +231,7 @@ export default function ChallengeDashboard() {
             })
             if (res.ok) {
                 showToast("Progression sauvegardée", "success")
+                setHonorChecked(false)
                 fetchData(selectedDate)
             }
         } catch (err) {
@@ -222,8 +274,15 @@ export default function ChallengeDashboard() {
         allowedDates.push({ iso, label: i === 0 ? "Aujourd'hui" : i === 1 ? "Hier" : i === 2 ? "J-2" : "J-3" })
     }
 
-    const currentTotal = (localSets?.pushups || []).reduce((a, b) => a + b, 0) + (localSets?.pullups || []).reduce((a, b) => a + b, 0) + (localSets?.squats || []).reduce((a, b) => a + b, 0)
+    const sumSets = (sets: (number | "")[]) => sets.reduce<number>((a, b) => a + (Number(b) || 0), 0)
+    const currentTotal = sumSets(localSets?.pushups || []) + sumSets(localSets?.pullups || []) + sumSets(localSets?.squats || [])
     const missing = Math.max(0, (data?.requiredReps?.selected ?? 0) - currentTotal)
+
+    const totalSquatsAllTime = data.leaderboard.find(u => (u as any).id === (session?.user as any)?.id)?.totalSquatsAllTime || 0;
+    const badgesCount = data.badges.earned.trophies.length + data.badges.earned.specialDays.length;
+
+    const showKM = totalSquatsAllTime >= 1000;
+    const showStretching = badgesCount >= 5;
 
     const getStreakEmoji = (rate: number, streak: number) => {
         if (rate >= 100) return { label: "Parfait", emoji: "👑" };
@@ -256,9 +315,9 @@ export default function ChallengeDashboard() {
                         <p className="text-[10px] font-black text-gray-400 mt-1 uppercase tracking-widest">Version 3.1 • Clean State</p>
                     </div>
                     <div className="flex bg-gray-200 p-1 rounded-xl overflow-x-auto no-scrollbar">
-                        {(['saisie', 'graphs', 'cagnotte', 'trophees'] as const).map(t => (
-                            <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all whitespace-nowrap ${activeTab === t ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>
-                                {t.toUpperCase()}
+                        {(['saisie', 'graphs', 'cagnotte', 'trophees', ...(showKM ? ['km'] : []), ...(showStretching ? ['zen'] : [])] as const).map(t => (
+                            <button key={t} onClick={() => setActiveTab(t as any)} className={`px-4 py-2 rounded-lg text-[10px] font-black transition-all whitespace-nowrap ${activeTab === t ? 'bg-white shadow text-blue-600' : 'text-gray-500'}`}>
+                                {t === 'saisie' ? 'LOGS' : t.toUpperCase()}
                             </button>
                         ))}
                     </div>
@@ -320,24 +379,33 @@ export default function ChallengeDashboard() {
                                         <span className="font-black text-gray-800 uppercase text-xs">{type === 'pushups' ? 'Pompes' : type === 'pullups' ? 'Tractions' : 'Squats'}</span>
                                     </div>
                                     <span className="font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-xs">
-                                        {(localSets[type] || []).reduce((a, b) => a + b, 0)} reps
+                                        {(localSets[type] || []).reduce<number>((a, b) => a + (Number(b) || 0), 0)} reps
                                     </span>
                                 </div>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-3">
                                     {(localSets[type] || []).map((val, idx) => (
-                                        <div key={idx} className="relative group">
-                                            <input
-                                                type="number"
-                                                value={val}
-                                                ref={idx === (localSets[type]?.length ?? 0) - 1 ? lastInputRef : null}
-                                                onChange={(e) => handleSetChange(type, idx, e.target.value)}
-                                                className="w-16 h-12 bg-gray-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-xl text-center font-black text-gray-900 transition-all text-sm outline-none"
-                                            />
-                                            {getSetEmoji(val) && <span className="absolute -bottom-1 -left-1 text-[10px]">{getSetEmoji(val)}</span>}
-                                            <button onClick={() => removeSet(type, idx)} className="absolute -top-1 -right-1 w-5 h-5 bg-red-400 text-white rounded-full text-[10px] font-black opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-sm">✕</button>
+                                        <div key={idx} className="flex flex-col items-center gap-2">
+                                            <div className="relative group">
+                                                <input
+                                                    type="number"
+                                                    inputMode="numeric"
+                                                    value={val}
+                                                    placeholder="0"
+                                                    ref={idx === (localSets[type]?.length ?? 0) - 1 ? lastInputRef : null}
+                                                    onChange={(e) => handleSetChange(type, idx, e.target.value)}
+                                                    className="w-20 h-16 bg-gray-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl text-center font-black text-gray-900 transition-all text-xl outline-none"
+                                                />
+                                                {getSetEmoji(Number(val) || 0) && <span className="absolute -bottom-1 -left-1 text-xs">{getSetEmoji(Number(val) || 0)}</span>}
+                                                <button onClick={() => removeSet(type, idx)} className="absolute -top-2 -right-2 w-6 h-6 bg-red-400 text-white rounded-full text-xs font-black opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-lg">✕</button>
+                                            </div>
+                                            {/* Stepper buttons (A3) */}
+                                            <div className="flex gap-1">
+                                                <button onClick={() => adjustSet(type, idx, -5)} className="w-8 h-8 bg-gray-100 rounded-lg font-black text-gray-500">-5</button>
+                                                <button onClick={() => adjustSet(type, idx, 5)} className="w-8 h-8 bg-blue-50 rounded-lg font-black text-blue-600">+5</button>
+                                            </div>
                                         </div>
                                     ))}
-                                    <button onClick={() => addSet(type)} className="w-16 h-12 rounded-xl border-2 border-dashed border-gray-200 text-gray-300 hover:text-blue-500 hover:border-blue-300 transition-all font-black text-xl flex items-center justify-center">+</button>
+                                    <button onClick={() => addSet(type)} className="w-20 h-16 rounded-2xl border-2 border-dashed border-gray-200 text-gray-300 hover:text-blue-500 hover:border-blue-300 transition-all font-black text-2xl flex items-center justify-center">+</button>
                                 </div>
                             </div>
                         ))}
@@ -696,6 +764,107 @@ export default function ChallengeDashboard() {
             )}
 
             <p className="text-center text-[9px] font-black text-gray-300 uppercase tracking-[0.4em] pt-4">Reste focus. La discipline bat le talent.</p>
+            {/* KM TAB (Optional) */}
+            {activeTab === 'km' && (
+                <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="flex items-center gap-4">
+                        <span className="text-4xl">🏃‍♂️</span>
+                        <div>
+                            <h2 className="text-2xl font-black italic uppercase tracking-tighter">Kilomètres Courus</h2>
+                            <p className="text-xs font-bold text-gray-400 uppercase">Débloqué via 1000 Squats</p>
+                        </div>
+                    </div>
+                    <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100">
+                        <p className="text-sm font-bold text-blue-600 text-center mb-4">Fonctionnalité en cours de déploiement...</p>
+                        <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden">
+                            <div className="bg-blue-500 h-full w-1/3 animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ZEN TAB (Optional) */}
+            {activeTab === 'zen' && (
+                <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="flex items-center gap-4">
+                        <span className="text-4xl">🧘‍♀️</span>
+                        <div>
+                            <h2 className="text-2xl font-black italic uppercase tracking-tighter">Étirements & Zen</h2>
+                            <p className="text-xs font-bold text-gray-400 uppercase">Débloqué via 5 Badges</p>
+                        </div>
+                    </div>
+                    <div className="bg-purple-50 p-6 rounded-3xl border border-purple-100">
+                        <p className="text-sm font-bold text-purple-600 text-center mb-4">Prenez 10 minutes pour vous étirer aujourd'hui.</p>
+                        <button className="w-full bg-purple-600 text-white font-black py-4 rounded-2xl shadow-lg uppercase tracking-widest text-xs">J'AI FAIT MA SÉANCE ZEN</button>
+                    </div>
+                </div>
+            )}
+
+            {/* HONOR POPUP (A12) */}
+            {showHonorPopup && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full space-y-6 shadow-2xl animate-in zoom-in-95 duration-300">
+                        <div className="text-center">
+                            <span className="text-6xl mb-4 block">🏆</span>
+                            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">PROUESSE DÉTECTÉE</h2>
+                            <p className="text-xs font-bold text-gray-400 uppercase mt-2">Vous êtes sur le point de marquer l'histoire.</p>
+                        </div>
+
+                        <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100">
+                            <p className="text-sm text-yellow-800 font-bold leading-relaxed">
+                                Je jure sur l'honneur que les répétitions saisies ont été effectuées avec une forme exemplaire.
+                            </p>
+                        </div>
+
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={honorChecked}
+                                onChange={(e) => setHonorChecked(e.target.checked)}
+                                className="w-6 h-6 rounded-lg border-2 border-gray-200 checked:bg-blue-600 transition-all font-black"
+                            />
+                            <span className="font-bold text-sm text-gray-600 group-hover:text-blue-600 transition-colors uppercase">Je le jure</span>
+                        </label>
+
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={saveLogs}
+                                disabled={!honorChecked}
+                                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-30 text-white font-black py-4 rounded-2xl shadow-xl transition-all uppercase tracking-widest text-xs"
+                            >
+                                Valider la séance
+                            </button>
+                            <button onClick={() => setShowHonorPopup(null)} className="w-full py-2 text-xs font-bold text-gray-400 uppercase hover:text-gray-600">Annuler</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* FOOTER NAV (A5) */}
+            <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-100 p-2 sm:p-4 z-40 flex justify-around items-center shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+                <Link href="/" className="flex flex-col items-center gap-1 group">
+                    <span className="text-xl group-hover:scale-110 transition-transform">🏠</span>
+                    <span className="text-[8px] font-black text-blue-600 uppercase">Home</span>
+                </Link>
+                <Link href="/leaderboard" className="flex flex-col items-center gap-1 group">
+                    <span className="text-xl group-hover:scale-110 transition-transform">📊</span>
+                    <span className="text-[8px] font-black text-gray-400 uppercase italic">Rank</span>
+                </Link>
+                <Link href="/profile" className="flex flex-col items-center gap-1 group">
+                    <span className="text-xl group-hover:scale-110 transition-transform">👤</span>
+                    <span className="text-[8px] font-black text-gray-400 uppercase italic">Profil</span>
+                </Link>
+                <Link href="/profile/badges" className="flex flex-col items-center gap-1 group">
+                    <span className="text-xl group-hover:scale-110 transition-transform">🎖️</span>
+                    <span className="text-[8px] font-black text-gray-400 uppercase italic">Badges</span>
+                </Link>
+                {(session?.user as any)?.isAdmin && (
+                    <Link href="/admin" className="flex flex-col items-center gap-1 group">
+                        <span className="text-xl group-hover:scale-110 transition-transform">⚙️</span>
+                        <span className="text-[8px] font-black text-red-500 uppercase italic">Admin</span>
+                    </Link>
+                )}
+            </nav>
         </div>
     )
 }

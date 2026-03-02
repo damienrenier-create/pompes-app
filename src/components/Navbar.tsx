@@ -46,6 +46,23 @@ export default function Navbar() {
                                 >
                                     Mon Profil
                                 </Link>
+                                <a
+                                    href="https://photos.app.goo.gl/FrtN2kjDRY8vGQVP6"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hidden md:flex items-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold px-4 py-2 rounded-xl transition-all text-sm border border-indigo-100"
+                                >
+                                    <span>📸</span>
+                                    Album
+                                </a>
+                                {(session?.user as any)?.isAdmin && (
+                                    <Link
+                                        href="/admin"
+                                        className="hidden lg:block text-red-600 bg-red-50 hover:bg-red-100 font-bold px-4 py-2 rounded-xl transition-all text-sm border border-red-100"
+                                    >
+                                        Admin
+                                    </Link>
+                                )}
                                 <button
                                     onClick={() => signOut({ callbackUrl: '/login' })}
                                     className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors"
@@ -78,8 +95,16 @@ export default function Navbar() {
                             Leaderboard
                         </Link>
                         <Link href="/profile/badges" className="whitespace-nowrap text-gray-500 hover:text-blue-600 font-medium px-4 py-1 text-xs transition-colors">
-                            Mes Badges
+                            Badge Album
                         </Link>
+                        <a href="https://photos.app.goo.gl/FrtN2kjDRY8vGQVP6" target="_blank" rel="noopener noreferrer" className="whitespace-nowrap text-indigo-600 font-bold px-4 py-1 text-xs transition-colors">
+                            📸 Photos
+                        </a>
+                        {(session?.user as any)?.isAdmin && (
+                            <Link href="/admin" className="whitespace-nowrap text-red-600 font-bold px-4 py-1 text-xs transition-colors">
+                                Admin
+                            </Link>
+                        )}
                     </div>
                 )}
             </div>

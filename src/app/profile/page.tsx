@@ -16,6 +16,7 @@ export default function ProfilePage() {
     const [medicalCerts, setMedicalCerts] = useState<any[]>([])
     const [showMedForm, setShowMedForm] = useState(false)
     const [medDates, setMedDates] = useState({ start: "", end: "", note: "" })
+    const [records, setRecords] = useState({ pushups: 0, pullups: 0, squats: 0 })
 
     useEffect(() => {
         if (session === null) {
@@ -28,21 +29,13 @@ export default function ProfilePage() {
 
     const fetchProfileData = async () => {
         try {
-            const res = await fetch("/api/dashboard") // Dashboard has user info including fines and possibly other things if I update it, but let's fetch specific ones if needed.
-            // Actually, let's just fetch medical certs for now.
-            const resCerts = await fetch("/api/user/medical-certs")
-            if (resCerts.ok) {
-                const data = await resCerts.json()
-                setMedicalCerts(data)
-            }
-
-            // To get buyoutPaid, I might need a specific user endpoint or use dashboard
-            const resDash = await fetch("/api/dashboard")
-            if (resDash.ok) {
-                const dash = await resDash.json()
-                const currentUser = dash.leaderboard.find((u: any) => u.nickname === session?.user?.name)
-                // Wait, leaderboard doesn't have buyoutPaid. I should have added it to dashboard or profile API.
-                // Let's check profile API.
+            const res = await fetch("/api/user/profile")
+            if (res.ok) {
+                const data = await res.json()
+                setNickname(data.nickname)
+                setBuyoutPaid(data.buyoutPaid)
+                setMedicalCerts(data.medicalCertificates)
+                setRecords(data.records)
             }
         } catch (e) { }
     }
@@ -89,6 +82,28 @@ export default function ProfilePage() {
                 setShowMedForm(false)
                 fetchProfileData()
             } else {
+                throw new Error(data.message)
+            }
+        } catch (err: any) {
+            setMessage({ text: err.message, type: "error" })
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const cancelCert = async (id: string) => {
+        if (!confirm("Annuler ce certificat ?")) return
+        setLoading(true)
+        try {
+            const res = await fetch("/api/user/medical-certs/cancel", {
+                method: "POST",
+                body: JSON.stringify({ id })
+            })
+            if (res.ok) {
+                setMessage({ text: "Certificat annulé.", type: "success" })
+                fetchProfileData()
+            } else {
+                const data = await res.json()
                 throw new Error(data.message)
             }
         } catch (err: any) {
@@ -217,7 +232,16 @@ export default function ProfilePage() {
                                             <p className="text-sm font-bold text-gray-800">Du {cert.startDateISO} au {cert.endDateISO}</p>
                                             {cert.note && <p className="text-xs text-gray-400">{cert.note}</p>}
                                         </div>
-                                        <div className="text-[10px] font-black text-blue-500 uppercase">Actif</div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="text-[10px] font-black text-blue-500 uppercase">Actif</div>
+                                            <button
+                                                onClick={() => cancelCert(cert.id)}
+                                                className="p-1 text-red-400 hover:text-red-600 transition-colors"
+                                                title="Annuler"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
+                                            </button>
+                                        </div>
                                     </div>
                                 ))}
 
@@ -278,17 +302,17 @@ export default function ProfilePage() {
                         <div className="grid grid-cols-3 gap-4">
                             <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
                                 <div className="text-[10px] font-black text-blue-400 uppercase">Max Pompes</div>
-                                <div className="text-2xl font-black text-blue-600">--</div>
+                                <div className="text-2xl font-black text-blue-600">{records.pushups || '--'}</div>
                                 <div className="text-[10px] text-gray-400 font-bold uppercase">Série</div>
                             </div>
                             <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-center">
                                 <div className="text-[10px] font-black text-orange-400 uppercase">Max Tractions</div>
-                                <div className="text-2xl font-black text-orange-600">--</div>
+                                <div className="text-2xl font-black text-orange-600">{records.pullups || '--'}</div>
                                 <div className="text-[10px] text-gray-400 font-bold uppercase">Série</div>
                             </div>
                             <div className="bg-green-50 p-4 rounded-2xl border border-green-100 text-center">
                                 <div className="text-[10px] font-black text-green-400 uppercase">Max Squats</div>
-                                <div className="text-2xl font-black text-green-600">--</div>
+                                <div className="text-2xl font-black text-green-600">{records.squats || '--'}</div>
                                 <div className="text-[10px] text-gray-400 font-bold uppercase">Série</div>
                             </div>
                         </div>

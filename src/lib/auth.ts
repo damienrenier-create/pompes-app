@@ -58,6 +58,10 @@ export const authOptions: NextAuthOptions = {
                 // Calculer l'expiration logique : 30j si remember, sinon 1j
                 const duration = u.remember ? 30 * 24 * 60 * 60 : 1 * 24 * 60 * 60
                 token.expiresAt = Math.floor(Date.now() / 1000) + duration
+
+                // Admin check
+                const moderatorEmails = (process.env.MODERATOR_EMAILS || "").split(",").map(e => e.trim().toLowerCase());
+                token.isAdmin = u.email ? moderatorEmails.includes(u.email.toLowerCase()) : false;
             }
 
             // Vérification de l'expiration logique
@@ -69,9 +73,11 @@ export const authOptions: NextAuthOptions = {
         },
         session: async ({ session, token }) => {
             if (session?.user) {
-                session.user.id = token.id as string
-                session.user.name = token.name as string
-                session.user.expired = token.expired as boolean
+                const user = session.user as any;
+                user.id = token.id as string;
+                user.name = token.name as string;
+                user.expired = token.expired as boolean;
+                user.isAdmin = token.isAdmin as boolean;
             }
             return session
         }

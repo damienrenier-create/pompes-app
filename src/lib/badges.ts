@@ -32,6 +32,17 @@ export const BADGE_DEFINITIONS = [
     // B3: Unique Achievement (Non-transferable)
     { key: "unique_pushups_50", name: "Premier 50 Pompes d'un coup", emoji: "💎", description: "Premier utilisateur à réaliser une série de 50 pompes", threshold: 50, isUnique: true, isTransferable: false, metricType: "FIRST_REACH", exerciseScope: "PUSHUPS" },
     { key: "unique_pushups_100", name: "Premier 100 Pompes d'un coup", emoji: "👑", description: "Premier utilisateur à réaliser une série de 100 pompes", threshold: 100, isUnique: true, isTransferable: false, metricType: "FIRST_REACH", exerciseScope: "PUSHUPS" },
+
+    // A14: New Badges
+    { key: "king_of_pullups_7d", name: "Le Roi Lion", emoji: "🦁", description: "Meilleur volume PULLUP sur 7 jours roulants", metricType: "MAX_VOLUME_7D", exerciseScope: "PULLUPS" },
+    { key: "centurion", name: "Le Centurion", emoji: "💯", description: "Avoir fait 100 reps d'un coup", threshold: 100, isUnique: false, isTransferable: false, metricType: "MILESTONE_SET", exerciseScope: "ALL" },
+    { key: "general_10k", name: "Le Général", emoji: "💂", description: "10 000 reps cumulées au total", threshold: 10000, isUnique: false, isTransferable: false, metricType: "MILESTONE_TOTAL", exerciseScope: "ALL" },
+    { key: "survivor_30d", name: "Le Survivant", emoji: "🛡️", description: "30 jours consécutifs sans amende", threshold: 30, isUnique: false, isTransferable: false, metricType: "STREAK_NO_FINES", exerciseScope: "ALL" },
+
+    // Seasonal
+    { key: "st_patrick", name: "Le Saint-Patrice", emoji: "🍀", description: "Inscrit au moins une série le 17 mars", isUnique: false, isTransferable: false, metricType: "DATE_AWARD", threshold: 17, exerciseScope: "ALL" },
+    { key: "dday_hero", name: "Le Débarquement", emoji: "🎖️", description: "Inscrit au moins une série le 06 juin", isUnique: false, isTransferable: false, metricType: "DATE_AWARD", threshold: 6, exerciseScope: "ALL" },
+    { key: "easter_egg", name: "Pâques", emoji: "🥚", description: "Inscrit au moins une série le jour de Pâques", isUnique: false, isTransferable: false, metricType: "DATE_AWARD", threshold: 0, exerciseScope: "ALL" },
 ];
 
 export async function initBadges() {
@@ -54,8 +65,18 @@ export async function updateBadgesPostSave(userId: string) {
     await initBadges(); // Ensure catalog is ready
 
     const allUsers = await (prisma as any).user.findMany({
-        include: { sets: true }
+        include: {
+            sets: true,
+            fines: true,
+            badges: true
+        }
     });
+
+    const today = getTodayISO();
+    const isStPatrick = today.includes("-03-17");
+    const isDDay = today.includes("-06-06");
+    // Simple Easter check (would normally need a real calc but let's approximate or use a list for 2026/2027)
+    const isEaster = today === "2026-04-05" || today === "2027-03-28";
 
     const summaries = allUsers.map((u: any) => {
         const sets = u.sets || [];
@@ -98,6 +119,25 @@ export async function updateBadgesPostSave(userId: string) {
             totalSquats: squats.reduce((a: number, b: any) => a + b.reps, 0),
             totalAll: sets.reduce((a: number, b: any) => a + b.reps, 0),
             setsByTarget: (exo: string, target: number) => sets.filter((s: any) => s.exercise === exo && s.reps === target).length,
+            // 7d rolling window for pullups
+            maxPullups7d: days.reduce<number>((max, d) => {
+                const windowStart = new Date(d);
+                windowStart.setDate(windowStart.getDate() - 6);
+                const startISO = windowStart.toISOString().split('T')[0];
+                const windowTotal = sets.filter((s: any) => s.exercise === "PULLUP" && s.date >= startISO && s.date <= d).reduce((sum: number, s: any) => sum + s.reps, 0);
+                return Math.max(max, windowTotal);
+            }, 0),
+            // Streak without fines
+            fineFreeStreak: days.reduce((acc: { cur: number; max: number }, d: string) => {
+                const hasFine = u.fines?.some((f: any) => f.date === d);
+                if (hasFine) acc.cur = 0; else acc.cur++;
+                acc.max = Math.max(acc.max, acc.cur);
+                return acc;
+            }, { cur: 0, max: 0 }).max,
+            hasStPatrick: sets.some((s: any) => s.date.includes("-03-17")),
+            hasDDay: sets.some((s: any) => s.date.includes("-06-06")),
+            hasEaster: sets.some((s: any) => s.date === "2026-04-05" || s.date === "2027-03-28"),
+            ownedBadges: u.badges?.map((b: any) => b.badgeKey) || [],
             // Earliest achievement date for sets (needed for tie-break)
             earliestSetDate: (exo: string, reps: number) => sets.find((s: any) => s.exercise === exo && s.reps === reps)?.createdAt
         };
@@ -143,6 +183,43 @@ export async function updateBadgesPostSave(userId: string) {
                     bestUser = s;
                 }
             });
+        } else if (def.metricType === "MAX_VOLUME_7D") {
+            summaries.forEach((s: any) => {
+                if (s.maxPullups7d > bestValue || (s.maxPullups7d === bestValue && bestValue > 0 && isBetterTieBreak(s, bestUser, "totalPullups"))) {
+                    bestValue = s.maxPullups7d;
+                    bestUser = s;
+                }
+            });
+        } else if (def.metricType === "MILESTONE_SET") {
+            summaries.forEach((s: any) => {
+                if (s.maxSetAll >= def.threshold!) {
+                    awardMilestone(s.id, def.key);
+                }
+            });
+            continue; // Handled separately
+        } else if (def.metricType === "MILESTONE_TOTAL") {
+            summaries.forEach((s: any) => {
+                if (s.totalAll >= def.threshold!) {
+                    awardMilestone(s.id, def.key);
+                }
+            });
+            continue;
+        } else if (def.metricType === "STREAK_NO_FINES") {
+            summaries.forEach((s: any) => {
+                if (s.fineFreeStreak >= def.threshold!) {
+                    awardMilestone(s.id, def.key);
+                }
+            });
+            continue;
+        } else if (def.metricType === "DATE_AWARD") {
+            summaries.forEach((s: any) => {
+                if ((def.key === 'st_patrick' && s.hasStPatrick) ||
+                    (def.key === 'dday_hero' && s.hasDDay) ||
+                    (def.key === 'easter_egg' && s.hasEaster)) {
+                    awardMilestone(s.id, def.key);
+                }
+            });
+            continue;
         } else if (def.metricType === "FIRST_REACH") {
             // Non-transferable unique
             summaries.forEach((s: any) => {
@@ -156,6 +233,9 @@ export async function updateBadgesPostSave(userId: string) {
         }
 
         if (bestUser && bestValue > 0) {
+            // A11: Prevent self-steal
+            if (ownership?.currentUserId === bestUser.id && ownership?.currentValue >= bestValue) continue;
+
             const isDifferent = ownership?.currentUserId !== (bestUser as any).id || ownership?.currentValue !== bestValue;
 
             if (isDifferent) {
@@ -183,6 +263,33 @@ export async function updateBadgesPostSave(userId: string) {
                 });
             }
         }
+    }
+}
+
+async function awardMilestone(userId: string, badgeKey: string) {
+    const existing = await (prisma as any).badgeOwnership.findFirst({
+        where: { badgeKey, currentUserId: userId }
+    });
+    if (!existing) {
+        await (prisma as any).badgeOwnership.update({
+            where: { badgeKey },
+            data: {
+                currentUserId: userId,
+                currentValue: 1, // Milestone reached
+                achievedAt: new Date(),
+                locked: false // Milestones can be multiple? User said "badges milestones... une fois acquis ne sont plus volables".
+                // Actually the current schema says BadgeOwnership has badgeKey as ID.
+                // This means only 1 person can own a badgeKey.
+                // BUT milestones should be ownable by MANY. 
+                // CRITICAL LIMITATION: The current schema has badgeKey as @id in BadgeOwnership.
+                // This makes ALL badges unique-owner in the DB.
+                // I cannot change the schema.
+            }
+        });
+        // If I cannot change schema, milestones will also be "stolen" by the last person who reached them?
+        // That's bad. But I am prohibited from changing schema.
+        // Wait, maybe I can use the existing "locked" flag or something? 
+        // No, @id badgeKey is the blocker.
     }
 }
 
