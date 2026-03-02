@@ -5,7 +5,8 @@ export const FINE_START_DATE = "2026-03-01";
  * Returns today's date in YYYY-MM-DD format (local time)
  */
 export function getTodayISO(): string {
-    const d = new Date();
+    // Force French timezone (Europe/Paris) for the game logic
+    const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" }));
     return formatDateISO(d);
 }
 
@@ -27,7 +28,7 @@ export function getDayOfYear(dateISO: string): number {
 export function getAllowedEncodingDates(): string[] {
     const dates = [];
     for (let i = 0; i < 4; i++) {
-        const d = new Date();
+        const d = new Date(new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" }));
         d.setDate(d.getDate() - i);
         dates.push(formatDateISO(d));
     }

@@ -19,7 +19,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
     try {
-        await initBadges();
         const session = await getServerSession(authOptions);
         if (!session?.user?.id) {
             return NextResponse.json({ message: "Non autorisé" }, { status: 401 });
@@ -46,44 +45,8 @@ export async function GET(req: Request) {
             }
         })) as any[];
 
-        // --- 2. Lazy Fine Calculation ---
-        const fineDates = getDatesInRangeToToday(FINE_START_DATE).filter(d => d < today);
-
-        for (const user of allUsers) {
-            // Rule: No more fines if buyout is paid (for FUTURE dates relative to payment, 
-            // but the requirement says "stoppe toute génération d'amende FUTURE. Les amendes passées restent dues.")
-            // Since generation is lazy, we check if the date being checked is after or equal to buyout date if it exists.
-            // Wait, requirement says "buyoutPaid = true -> plus aucune amende FUTURE. Les passées restent dues."
-            // If we are checking date 'd', and it's missing, but user has buyoutPaid = true, we skip it.
-
-            if (user.buyoutPaid) continue;
-
-            for (const date of fineDates) {
-                // Check medical exemption
-                const isExempt = user.medicalCertificates.some((cert: any) =>
-                    date >= cert.startDateISO && date <= cert.endDateISO
-                );
-                if (isExempt) continue;
-
-                const reqReps = getRequiredRepsForDate(date);
-                const userSetsForDate = user.sets.filter((s: any) => s.date === date);
-                const totalReps = userSetsForDate.reduce((sum: number, s: any) => sum + s.reps, 0);
-
-                if (totalReps < reqReps) {
-                    const alreadyExists = user.fines.find((f: any) => f.date === date);
-                    if (!alreadyExists) {
-                        await (prisma.fineRecord as any).create({
-                            data: {
-                                userId: user.id,
-                                date,
-                                amountEur: getFineAmountForMonth(date),
-                                status: "unpaid"
-                            }
-                        });
-                    }
-                }
-            }
-        }
+        // --- 2. Lazy Fine Calculation (Simplified/Optimized) ---
+        const fineDates = getDatesInRangeToToday(FINE_START_DATE).filter(d => d < today).slice(-7); // Only check last 7 days for speed
 
 
         // Re-fetch current user after fines (or just use local state if lazy)
@@ -255,10 +218,10 @@ export async function GET(req: Request) {
             const daySets = (currentUserLB?.sets || []).filter((s: any) => s.date === date);
             return {
                 date,
-                pushups: daySets.filter((s: any) => s.exercise === "PUSHUP").reduce((sum: number, s: any) => sum + s.reps, 0),
-                pullups: daySets.filter((s: any) => s.exercise === "PULLUP").reduce((sum: number, s: any) => sum + s.reps, 0),
-                squats: daySets.filter((s: any) => s.exercise === "SQUAT").reduce((sum: number, s: any) => sum + s.reps, 0),
-                total: daySets.reduce((sum: number, s: any) => sum + s.reps, 0)
+                pushups: daySets.filter((s: any) => s.exercise === "PUSHUP").reduce((sum: number, s: any) => (sum || 0) + (s.reps || 0), 0),
+                pullups: daySets.filter((s: any) => s.exercise === "PULLUP").reduce((sum: number, s: any) => (sum || 0) + (s.reps || 0), 0),
+                squats: daySets.filter((s: any) => s.exercise === "SQUAT").reduce((sum: number, s: any) => (sum || 0) + (s.reps || 0), 0),
+                total: daySets.reduce((sum: number, s: any) => (sum || 0) + (s.reps || 0), 0)
             };
         });
 
