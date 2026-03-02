@@ -164,6 +164,7 @@ export default function ChallengeDashboard() {
 
     const handleDateChange = (date: string) => {
         setLoading(true)
+        setSelectedDate(date) // Crucial: update local state immediately
         fetchData(date)
     }
 

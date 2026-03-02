@@ -127,9 +127,9 @@ export async function updateBadgesPostSave(userId: string) {
                 const total = daySets.reduce((sum: number, s: any) => sum + s.reps, 0);
                 return total >= getRequiredRepsForDate(daySets[0]?.date || "2026" + dateStr) && total > 0;
             },
-            hasStMarvin: sets.some((s: any) => s.date.includes("-03-08")),
-            hasStDamien: sets.some((s: any) => s.date.includes("-12-18")),
-            hasStNicolas: sets.some((s: any) => s.date.includes("-12-06")),
+            hasStMarvin: sets.some((s: any) => s.date.endsWith("-03-08")),
+            hasStDamien: sets.some((s: any) => s.date.endsWith("-12-18")),
+            hasStNicolas: sets.some((s: any) => s.date.endsWith("-12-06")),
             fineFreeStreak: days.reduce((acc: { cur: number; max: number }, d: string) => {
                 const hasFine = u.fines?.some((f: any) => f.date === d);
                 if (hasFine) acc.cur = 0; else acc.cur++;
@@ -207,7 +207,10 @@ export async function updateBadgesPostSave(userId: string) {
             continue;
         } else if (def.metricType === "DATE_AWARD_HARD") {
             const dateMap: any = { 'st_patrick': '-03-17', 'dday_hero': '-06-06', 'easter_egg': '2026-04-05' };
-            summaries.forEach((s: any) => { if (s.checkHardDate(dateMap[def.key])) awardMilestone(s.id, def.key); });
+            summaries.forEach((s: any) => {
+                const target = dateMap[def.key];
+                if (s.checkHardDate(target)) awardMilestone(s.id, def.key);
+            });
             continue;
         } else if (def.metricType === "DATE_AWARD") {
             summaries.forEach((s: any) => {

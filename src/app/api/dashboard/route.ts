@@ -109,7 +109,8 @@ export async function GET(req: Request) {
 
             for (let i = dates30.length - 1; i >= 0; i--) {
                 const d = dates30[i];
-                if (d === today) continue;
+                // Do NOT skip today for total reps, but we can skip it for streak/completion if preferred. 
+                // However, user says they "lost data", so we MUST ensure today is counted in totals.
 
                 const daySets = uSets.filter((s: any) => s.date === d);
                 const dayTotal = daySets.reduce((sum: number, s: any) => sum + s.reps, 0);
@@ -129,7 +130,7 @@ export async function GET(req: Request) {
                 id: u.id,
                 nickname: u.nickname,
                 buyoutPaid: u.buyoutPaid,
-                completionRate: (completeCount / Math.max(1, dates30.length - 1)) * 100,
+                completionRate: (completeCount / Math.max(1, dates30.length)) * 100,
                 streakCurrent: currentStreak,
                 totalPerfectDays,
                 maxSingleSet,
