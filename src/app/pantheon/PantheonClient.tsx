@@ -20,12 +20,14 @@ import {
     CircleDashed
 } from "lucide-react";
 // Replace date-fns with native Intl
-const formatTime = (date: Date) => {
+const formatTime = (dateStr: any) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
     return new Intl.DateTimeFormat('fr-FR', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false
-    }).format(new Date(date));
+    }).format(date);
 };
 
 interface User {
@@ -256,7 +258,7 @@ export default function PantheonClient({
                             <div className="space-y-4">
                                 <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Milestones & Fun</p>
                                 <div className="grid grid-cols-1 gap-3">
-                                    {Object.entries(userVirtualData?.virtualBadges || {}).map(([key, value], i) => {
+                                    {Object.entries(userVirtualData?.virtualBadges || {}).map(([key, value]: [string, any], i) => {
                                         const def = badgeDefinitions.find(d => d.key === key);
                                         if (!def) return null;
                                         return (
@@ -268,7 +270,7 @@ export default function PantheonClient({
                                                         <p className="text-[9px] text-slate-500 font-bold mt-0.5">{value ? '✅ OBTENU' : '◻️ EN COURS'}</p>
                                                     </div>
                                                 </div>
-                                                {value && <Star className="text-yellow-400 fill-yellow-400" size={14} />}
+                                                {!!value && <Star className="text-yellow-400 fill-yellow-400" size={14} />}
                                             </div>
                                         );
                                     })}
@@ -435,7 +437,7 @@ export default function PantheonClient({
                                         {userOwnerships.slice(0, 3).map((bo, j) => (
                                             <span key={j} className="text-lg bg-white/5 w-8 h-8 flex items-center justify-center rounded-lg" title={bo.badge?.name}>{bo.badge?.emoji}</span>
                                         ))}
-                                        {Object.entries(virtuals).filter(([_, v]) => v).slice(0, 3).map(([key, _], j) => (
+                                        {Object.entries(virtuals).filter(([_, v]) => !!v).slice(0, 3).map(([key, _]: [string, any], j) => (
                                             <span key={`v-${j}`} className="text-lg bg-white/5 w-8 h-8 flex items-center justify-center rounded-lg grayscale opacity-50" title={key.replace('_', ' ')}>
                                                 {badgeDefinitions.find(d => d.key === key)?.emoji}
                                             </span>

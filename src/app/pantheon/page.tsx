@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import PantheonClient from "./PantheonClient";
+import PantheonClient from "@/app/pantheon/PantheonClient";
 import { BADGE_DEFINITIONS } from "@/lib/badges";
 import { getRequiredRepsForDate } from "@/lib/challenge";
 
