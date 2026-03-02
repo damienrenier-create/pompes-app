@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import PantheonClient from "@/app/pantheon/PantheonClient";
-import { BADGE_DEFINITIONS } from "@/lib/badges";
+import { BADGE_DEFINITIONS, getUserSummaries } from "@/lib/badges";
 import { getRequiredRepsForDate } from "@/lib/challenge";
 
 export default async function PantheonPage() {
@@ -21,9 +21,8 @@ export default async function PantheonPage() {
     ] = await Promise.all([
         (prisma as any).user.findMany({
             include: {
-                sets: { orderBy: { createdAt: 'desc' } },
+                sets: true,
                 fines: true,
-                badges: { include: { badge: true } }
             }
         }),
         (prisma as any).badgeOwnership.findMany({
@@ -33,7 +32,7 @@ export default async function PantheonPage() {
             }
         }),
         (prisma as any).badgeEvent.findMany({
-            take: 20,
+            take: 30,
             orderBy: { createdAt: "desc" },
             include: {
                 badge: true,
@@ -44,72 +43,73 @@ export default async function PantheonPage() {
         (prisma as any).badgeDefinition.findMany(),
     ]);
 
+    const summaries = getUserSummaries(allUsers, allEvents);
+
     // Calculate virtual milestones for everyone
-    const virtualizedData = allUsers.map((u: any) => {
-        const sets = u.sets || [];
-        const maxSetAll = sets.length ? Math.max(...sets.map((s: any) => s.reps)) : 0;
-        const totalAll = sets.reduce((sum: number, s: any) => sum + s.reps, 0);
-
-        // Streak without fines
-        const days = Array.from(new Set(sets.map((s: any) => s.date))).sort() as string[];
-        const fineFreeStreak = days.reduce((acc: { cur: number; max: number }, d: string) => {
-            const hasFine = u.fines?.some((f: any) => f.date === d);
-            if (hasFine) acc.cur = 0; else acc.cur++;
-            acc.max = Math.max(acc.max, acc.cur);
-            return acc;
-        }, { cur: 0, max: 0 }).max;
-
+    const virtualizedData = summaries.map((s: any) => {
         return {
-            userId: u.id,
-            nickname: u.nickname,
+            userId: s.id,
+            nickname: s.nickname,
             virtualBadges: {
-                centurion: maxSetAll >= 100,
-                general_10k: totalAll >= 10000,
-                survivor_30d: fineFreeStreak >= 30,
-                early_bird: sets.some((s: any) => new Date(s.createdAt).getHours() < 6),
-                night_owl: sets.some((s: any) => new Date(s.createdAt).getHours() >= 22),
-                high_noon: sets.some((s: any) => {
-                    const dt = new Date(s.createdAt);
-                    return dt.getHours() === 12 && dt.getMinutes() === 0;
-                }),
-                master_thief: allEvents.filter((e: any) => e.eventType === 'STEAL' && e.toUserId === u.id).length
+                centurion: s.maxSetAll >= 100,
+                general_10k: s.totalAll >= 10000,
+                survivor_30d: s.fineFreeStreak >= 30,
+                early_bird: s.hasEarly,
+                night_owl: s.hasLate,
+                high_noon: s.hasNoon,
+                master_thief: s.stealCount
             }
         };
     });
 
     // Calculate Danger List (Badges close to being stolen)
-    // For simplicity, we filter competitive badges and check diffs
     const dangerList = badgeOwnerships
-        .filter((bo: any) => bo.badge?.type === "COMPETITIVE" && bo.currentUserId)
+        .filter((bo: any) => bo.badge?.type === "COMPETITIVE" && bo.currentUserId && bo.currentValue > 0)
         .map((bo: any) => {
             const def = BADGE_DEFINITIONS.find(d => d.key === bo.badgeKey);
             if (!def) return null;
 
-            let bestChallenger: any = null;
-            let maxVal = 0;
+            // Metric keys mapping
+            const metricMap: any = {
+                "MAX_BONUS": "maxBonus",
+                "BONUS_STREAK": "maxBonusStreak",
+                "PERFECT_TARGET_STREAK": "maxPerfectStreak",
+                "STEAL_COUNT": "stealCount"
+            };
 
-            allUsers.forEach((u: any) => {
-                if (u.id === bo.currentUserId) return;
-                let val = 0;
-                const sets = u.sets || [];
-                if (def.metricType === "MAX_SET") {
-                    val = sets.length ? Math.max(...sets.map((s: any) => s.reps)) : 0;
-                } else if (def.metricType === "MAX_BONUS") {
-                    // Approximate or logic from badges.ts
-                }
-                if (val > maxVal) {
-                    maxVal = val;
-                    bestChallenger = u;
-                }
-            });
+            let valKey = metricMap[def.metricType];
+            if (def.metricType === "MAX_SET") {
+                valKey = def.exerciseScope === "PUSHUPS" ? "maxSetPushups" : def.exerciseScope === "PULLUPS" ? "maxSetPullups" : def.exerciseScope === "SQUATS" ? "maxSetSquats" : "maxSetAll";
+            } else if (def.metricType === "SERIES_COUNT") {
+                // Approximate for danger list
+                valKey = "maxSetAll";
+            }
 
-            const diff = bo.currentValue - maxVal;
-            if (diff <= 5 && diff >= 0) {
+            if (!valKey) return null;
+
+            // Find best challenger (excluding current holder)
+            const sortedChallengers = summaries
+                .filter(s => s.id !== bo.currentUserId)
+                .sort((a: any, b: any) => b[valKey] - a[valKey]);
+
+            const challenger = sortedChallengers[0] as any;
+            if (!challenger) return null;
+
+            const challengerValue = challenger[valKey];
+            const diff = bo.currentValue - challengerValue;
+
+            // Show if diff is small (e.g., within 10% or absolute small range)
+            const percentClose = (challengerValue / bo.currentValue);
+
+            if (percentClose >= 0.8 || diff <= 5) {
                 return {
                     badgeKey: bo.badgeKey,
                     badgeName: bo.badge?.name,
+                    emoji: bo.badge?.emoji,
                     holder: bo.currentUser?.nickname,
-                    challenger: bestChallenger?.nickname || "Inconnu",
+                    challenger: challenger.nickname,
+                    currentValue: bo.currentValue,
+                    challengerValue,
                     diff
                 };
             }

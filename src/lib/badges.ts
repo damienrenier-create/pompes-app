@@ -55,15 +55,8 @@ export async function initBadges() {
     }
 }
 
-export async function updateBadgesPostSave(userId: string) {
-    await initBadges();
-
-    const [allUsers, allEvents] = await Promise.all([
-        (prisma as any).user.findMany({ include: { sets: true, fines: true, badges: true } }),
-        (prisma as any).badgeEvent.findMany({ where: { eventType: "STEAL" } })
-    ]);
-
-    const summaries = allUsers.map((u: any) => {
+export function getUserSummaries(allUsers: any[], allEvents: any[]) {
+    return allUsers.map((u: any) => {
         const sets = u.sets || [];
         const pushups = sets.filter((s: any) => s.exercise === "PUSHUP");
         const pullups = sets.filter((s: any) => s.exercise === "PULLUP");
@@ -123,9 +116,10 @@ export async function updateBadgesPostSave(userId: string) {
             }),
             // Date awards (Hard conditions)
             checkHardDate: (dateStr: string) => {
-                const daySets = sets.filter((s: any) => s.date.includes(dateStr));
+                const target = dateStr.startsWith('-') ? "2026" + dateStr : dateStr;
+                const daySets = sets.filter((s: any) => s.date === target);
                 const total = daySets.reduce((sum: number, s: any) => sum + s.reps, 0);
-                return total >= getRequiredRepsForDate(daySets[0]?.date || "2026" + dateStr) && total > 0;
+                return total >= getRequiredRepsForDate(target) && total > 0;
             },
             hasStMarvin: sets.some((s: any) => s.date.endsWith("-03-08")),
             hasStDamien: sets.some((s: any) => s.date.endsWith("-12-18")),
@@ -138,6 +132,17 @@ export async function updateBadgesPostSave(userId: string) {
             }, { cur: 0, max: 0 }).max,
         };
     });
+}
+
+export async function updateBadgesPostSave(userId: string) {
+    await initBadges();
+
+    const [allUsers, allEvents] = await Promise.all([
+        (prisma as any).user.findMany({ include: { sets: true, fines: true, badges: true } }),
+        (prisma as any).badgeEvent.findMany({ where: { eventType: "STEAL" } })
+    ]);
+
+    const summaries = getUserSummaries(allUsers, allEvents);
 
     for (const def of BADGE_DEFINITIONS) {
         const ownership = await (prisma as any).badgeOwnership.findUnique({ where: { badgeKey: def.key } });
@@ -173,8 +178,8 @@ export async function updateBadgesPostSave(userId: string) {
         } else if (def.metricType === "MAX_SET") {
             summaries.forEach((s: any) => {
                 const val = def.exerciseScope === "PUSHUPS" ? s.maxSetPushups : def.exerciseScope === "PULLUPS" ? s.maxSetPullups : def.exerciseScope === "SQUATS" ? s.maxSetSquats : s.maxSetAll;
-                const total = def.exerciseScope === "PUSHUPS" ? "totalPushups" : def.exerciseScope === "PULLUPS" ? "totalPullups" : def.exerciseScope === "SQUATS" ? "totalSquats" : "totalAll";
-                if (val > bestValue || (val === bestValue && bestValue > 0 && isBetterTieBreak(s, bestUser, total))) {
+                const totalKey = def.exerciseScope === "PUSHUPS" ? "totalPushups" : def.exerciseScope === "PULLUPS" ? "totalPullups" : def.exerciseScope === "SQUATS" ? "totalSquats" : "totalAll";
+                if (val > bestValue || (val === bestValue && bestValue > 0 && isBetterTieBreak(s, bestUser, totalKey))) {
                     bestValue = val; bestUser = s;
                 }
             });
