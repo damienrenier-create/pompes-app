@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 import { useEffect } from "react"
-import { Home, BarChart2, Euro, Trophy, Users, Award, User, LogOut, Camera, ShieldCheck, LayoutDashboard, Star } from "lucide-react"
+import { Home, Users, User, LogOut, Camera, ShieldCheck, Star } from "lucide-react"
 
 export default function Navbar() {
     const { data: session } = useSession()
@@ -31,34 +31,6 @@ export default function Navbar() {
                         {session && (
                             <div className="hidden lg:flex items-center gap-1">
                                 <Link
-                                    href="/?tab=saisie"
-                                    className="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 font-bold px-3 py-2 rounded-xl transition-all text-xs uppercase tracking-wider"
-                                >
-                                    <LayoutDashboard size={14} />
-                                    Saisie
-                                </Link>
-                                <Link
-                                    href="/?tab=graphs"
-                                    className="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 font-bold px-3 py-2 rounded-xl transition-all text-xs uppercase tracking-wider"
-                                >
-                                    <BarChart2 size={14} />
-                                    Graphs
-                                </Link>
-                                <Link
-                                    href="/?tab=cagnotte"
-                                    className="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 font-bold px-3 py-2 rounded-xl transition-all text-xs uppercase tracking-wider"
-                                >
-                                    <Euro size={14} />
-                                    Cagnotte
-                                </Link>
-                                <Link
-                                    href="/trophies"
-                                    className="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 font-bold px-3 py-2 rounded-xl transition-all text-xs uppercase tracking-wider"
-                                >
-                                    <Trophy size={14} />
-                                    Trophées
-                                </Link>
-                                <Link
                                     href="/pantheon"
                                     className="flex items-center gap-1.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-black px-3 py-2 rounded-xl transition-all text-xs uppercase tracking-wider border border-indigo-100 shadow-sm"
                                 >
@@ -72,13 +44,6 @@ export default function Navbar() {
                                 >
                                     <Users size={14} />
                                     Leaderboard
-                                </Link>
-                                <Link
-                                    href="/profile/badges"
-                                    className="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 font-bold px-3 py-2 rounded-xl transition-all text-xs uppercase tracking-wider"
-                                >
-                                    <Award size={14} />
-                                    Badges
                                 </Link>
                             </div>
                         )}
@@ -138,44 +103,6 @@ export default function Navbar() {
                         )}
                     </div>
                 </div>
-                {/* Mobile Extra Links (Optimized) */}
-                {session && (
-                    <div className="flex sm:hidden border-t border-gray-100 py-3 overflow-x-auto no-scrollbar gap-2 bg-gray-50/50 -mx-4 px-4">
-                        <Link href="/?tab=saisie" className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-200 text-gray-600 font-bold px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-sm transition-all hover:border-blue-300">
-                            <LayoutDashboard size={12} />
-                            Saisie
-                        </Link>
-                        <Link href="/?tab=graphs" className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-200 text-gray-600 font-bold px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-sm transition-all hover:border-blue-300">
-                            <BarChart2 size={12} />
-                            Graphs
-                        </Link>
-                        <Link href="/?tab=cagnotte" className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-200 text-gray-600 font-bold px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-sm transition-all hover:border-blue-300">
-                            <Euro size={12} />
-                            Cagnotte
-                        </Link>
-                        <Link href="/trophies" className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-200 text-gray-600 font-bold px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-sm transition-all hover:border-blue-300">
-                            <Trophy size={12} />
-                            Trophées
-                        </Link>
-                        <Link href="/pantheon" className="flex items-center gap-1.5 whitespace-nowrap bg-indigo-600 border border-indigo-500 text-white font-black px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-md transition-all">
-                            <Star size={12} fill="currentColor" />
-                            Panthéon
-                        </Link>
-                        <div className="w-[1px] bg-gray-200 mx-1" />
-                        <Link href="/leaderboard" className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-200 text-gray-600 font-bold px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-sm transition-all hover:border-blue-300">
-                            <Users size={12} />
-                            Leaderboard
-                        </Link>
-                        <Link href="/profile/badges" className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-200 text-gray-600 font-bold px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-sm transition-all hover:border-blue-300">
-                            <Award size={12} />
-                            Badges
-                        </Link>
-                        <a href="https://photos.app.goo.gl/FrtN2kjDRY8vGQVP6" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 whitespace-nowrap bg-indigo-50 border border-indigo-100 text-indigo-600 font-bold px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-sm transition-all hover:bg-indigo-100">
-                            <Camera size={12} />
-                            Album
-                        </a>
-                    </div>
-                )}
             </div>
         </nav>
     )

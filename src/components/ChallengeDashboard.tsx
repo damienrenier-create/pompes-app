@@ -90,7 +90,7 @@ export default function ChallengeDashboard() {
     const [data, setData] = useState<DashboardData>(DEFAULT_DASHBOARD_DATA)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
-    const [activeTab, setActiveTab] = useState<'saisie' | 'graphs' | 'cagnotte' | 'trophees' | 'km' | 'zen'>('saisie')
+    const [activeTab, setActiveTab] = useState<'saisie' | 'graphs' | 'cagnotte'>('saisie')
     const [selectedDate, setSelectedDate] = useState<string>(DEFAULT_DASHBOARD_DATA.selectedDateISO)
     const lastFetchTime = useRef<number>(Date.now())
     const [localSets, setLocalSets] = useState<{ pushups: (number | "")[]; pullups: (number | "")[]; squats: (number | "")[] }>({
@@ -153,7 +153,7 @@ export default function ChallengeDashboard() {
 
     useEffect(() => {
         const tab = searchParams.get('tab')
-        if (tab && ['saisie', 'graphs', 'cagnotte', 'trophees', 'km', 'zen'].includes(tab)) {
+        if (tab && ['saisie', 'graphs', 'cagnotte'].includes(tab)) {
             setActiveTab(tab as any)
         }
     }, [searchParams]) // React on search params change
@@ -324,6 +324,12 @@ export default function ChallengeDashboard() {
                         <h1 className="text-3xl font-black italic tracking-tighter text-blue-600 leading-none">POMPES APP</h1>
                         <p className="text-[10px] font-black text-gray-400 mt-1 uppercase tracking-widest">Version 3.1 • Clean State</p>
                     </div>
+                </div>
+
+                <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-100">
+                    <button onClick={() => setActiveTab('saisie')} className={`flex-1 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'saisie' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Saisie</button>
+                    <button onClick={() => setActiveTab('graphs')} className={`flex-1 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'graphs' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Graphiques</button>
+                    <button onClick={() => setActiveTab('cagnotte')} className={`flex-1 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'cagnotte' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Cagnotte</button>
                 </div>
 
                 {activeTab === 'saisie' && (
@@ -590,223 +596,6 @@ export default function ChallengeDashboard() {
                 </div>
             )}
 
-            {activeTab === 'trophees' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <div className="flex items-baseline justify-between px-2">
-                        <h3 className="font-black text-xs text-gray-400 uppercase tracking-widest">Compteur de Gloire</h3>
-                        <span className="font-black text-blue-600 text-sm">{(data?.badges?.earned?.trophies?.length || 0) + (data?.badges?.earned?.specialDays?.length || 0)} / {(data?.badges?.earned?.trophies?.length || 0) + (data?.badges?.available?.trophies?.length || 0) + (data?.badges?.earned?.specialDays?.length || 0) + (data?.badges?.available?.specialDays?.length || 0)}</span>
-                    </div>
-
-                    {/* 🔥 ACTIVITÉ FEED */}
-                    <div className="bg-slate-900 rounded-[2rem] p-6 shadow-xl border border-white/5 overflow-hidden relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-orange-600/10 via-transparent to-transparent"></div>
-                        <h3 className="relative z-10 font-black text-[10px] text-orange-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                            <span>🔥</span> Activité Récente
-                        </h3>
-                        <div className="relative z-10 space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                            {(data?.badges?.competitive?.events || []).map((ev: any) => (
-                                <div key={ev.id} className="bg-white/5 border border-white/10 p-3 rounded-2xl flex items-center justify-between gap-3 animate-in slide-in-from-right-2">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xl">{ev.badge?.emoji}</span>
-                                        <div>
-                                            <p className="text-[10px] font-black text-white leading-none">
-                                                {ev.eventType === 'STEAL' ? (
-                                                    <>
-                                                        <Link href={`/u/${ev.toUser?.nickname}`} className="text-orange-400 hover:underline">{ev.toUser?.nickname}</Link> a volé <span className="text-blue-400">[{ev.badge?.name}]</span> à <Link href={`/u/${ev.fromUser?.nickname}`} className="hover:underline">{ev.fromUser?.nickname}</Link>
-                                                    </>
-                                                ) : ev.eventType === 'CLAIM' ? (
-                                                    <>
-                                                        <Link href={`/u/${ev.toUser?.nickname}`} className="text-green-400 hover:underline">{ev.toUser?.nickname}</Link> a obtenu <span className="text-blue-400">[{ev.badge?.name}]</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Link href={`/u/${ev.toUser?.nickname}`} className="text-yellow-400 hover:underline">{ev.toUser?.nickname}</Link> a débloqué <span className="text-blue-400">[{ev.badge?.name}]</span>
-                                                    </>
-                                                )}
-                                            </p>
-                                            <p className="text-[8px] font-bold text-gray-400 uppercase mt-1">{new Date(ev.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-black text-white">{ev.newValue}</p>
-                                        <p className="text-[8px] font-bold text-gray-500 uppercase tracking-tighter">Record</p>
-                                    </div>
-                                </div>
-                            ))}
-                            {(data?.badges?.competitive?.events || []).length === 0 && (
-                                <p className="text-center py-4 text-gray-500 font-bold text-[10px] uppercase italic tracking-widest">Aucune activité pour le moment</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* ⚠️ BADGES EN DANGER */}
-                    {(data?.badges?.competitive?.danger || []).length > 0 && (
-                        <div className="bg-red-50 border-2 border-red-100 rounded-[2rem] p-6 animate-pulse">
-                            <h3 className="font-black text-[10px] text-red-600 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <span>⚠️</span> Badges en danger
-                            </h3>
-                            <div className="space-y-3">
-                                {data.badges.competitive.danger.map((d: any) => (
-                                    <div key={d.badgeKey} className="flex items-center justify-between bg-white/80 p-3 rounded-2xl border border-red-100">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xl">{d.emoji}</span>
-                                            <div>
-                                                <p className="text-[9px] font-black text-gray-800 uppercase">{d.badgeName}</p>
-                                                <p className="text-[8px] font-bold text-gray-500 italic">
-                                                    Détenteur: <Link href={`/u/${d.holder}`} className="text-gray-900 hover:underline">{d.holder}</Link> ({d.currentValue})
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[9px] font-black text-red-600 uppercase">Menace: <Link href={`/u/${d.challenger}`} className="hover:underline">{d.challenger}</Link></p>
-                                            <p className="text-[8px] font-bold text-red-400 uppercase tracking-tighter">Écart: {d.diff > 0 ? `-${d.diff}` : 'Égalité'}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 🏆 BADGES COMPÉTITIFS (TRANSFÉRABLES) */}
-                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
-                        <div className="flex justify-between items-center mb-6 ml-2">
-                            <h3 className="font-black text-[10px] text-blue-600 uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-full">🏆 Badges Compétitifs</h3>
-                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Détenteur Actuel</span>
-                        </div>
-                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                            {(data?.badges?.competitive?.ownerships || []).filter((bo: any) => bo.badge?.isTransferable).map((bo: any) => (
-                                <div key={bo.badgeKey} className="bg-gradient-to-br from-white to-gray-50 border border-gray-100 p-4 rounded-3xl relative overflow-hidden group hover:shadow-md transition-all">
-                                    <div className="relative z-10">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <span className="text-2xl">{bo.badge?.emoji}</span>
-                                            <div className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-lg">{bo.currentValue}</div>
-                                        </div>
-                                        <p className="text-[9px] font-black text-gray-900 uppercase leading-none mb-1">{bo.badge?.name}</p>
-                                        <Link
-                                            href={bo.currentUser?.nickname ? `/u/${bo.currentUser.nickname}` : '#'}
-                                            className="text-[7.5px] font-bold text-blue-500 uppercase tracking-tighter truncate hover:underline block"
-                                        >
-                                            👑 {bo.currentUser?.nickname || 'Champion recherché'}
-                                        </Link>
-                                    </div>
-                                    <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
-                                        <span className="text-4xl">{bo.badge?.emoji}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* 👑 BADGES UNIQUES (LÉGENDAIRES) */}
-                    <div className="bg-slate-50 rounded-[2rem] p-6 border border-gray-200">
-                        <h3 className="font-black text-[10px] text-gray-500 uppercase tracking-widest mb-6 ml-2 bg-gray-100 w-fit px-3 py-1 rounded-full flex items-center gap-2">
-                            <span>👑</span> Badges Légendaires
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            {(data?.badges?.competitive?.ownerships || []).filter((bo: any) => !bo.badge?.isTransferable).map((bo: any) => (
-                                <div key={bo.badgeKey} className={`p-4 rounded-3xl border ${bo.locked ? 'bg-white border-yellow-200 shadow-sm' : 'bg-gray-100/50 border-dashed border-gray-300 opacity-50'}`}>
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${bo.locked ? 'bg-yellow-50' : 'bg-gray-100'}`}>
-                                            {bo.badge?.emoji}
-                                        </div>
-                                        <div>
-                                            <p className="text-[9px] font-black text-gray-800 uppercase leading-none">{bo.badge?.name}</p>
-                                            {bo.locked ? (
-                                                <p className="text-[8px] font-bold text-yellow-600 uppercase mt-1">Conquis par {bo.currentUser?.nickname}</p>
-                                            ) : (
-                                                <p className="text-[8px] font-bold text-gray-400 uppercase mt-1 italic">Toujours disponible</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* TROPHÉES CLASSIQUES */}
-                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
-                        <h3 className="font-black text-[10px] text-gray-400 uppercase tracking-widest mb-6 ml-2 bg-gray-50 w-fit px-3 py-1 rounded-full">🎓 Trophées de Milestones</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-                            {(data?.badges?.earned?.trophies || []).map((m: any) => (
-                                <div key={m.id} className="flex flex-col items-center gap-2 group">
-                                    <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-white rounded-[2rem] flex items-center justify-center text-3xl border-2 border-blue-100 shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-all">{m.emoji}</div>
-                                    <div className="text-center px-2">
-                                        <p className="text-[9px] font-black text-gray-800 uppercase leading-none mb-1">{m.label}</p>
-                                        <p className="text-[7.5px] font-bold text-blue-500 uppercase tracking-tighter truncate max-w-[80px]">{m.winners.join(', ')}</p>
-                                    </div>
-                                </div>
-                            ))}
-                            {(data?.badges?.earned?.specialDays || []).map((s: any) => (
-                                <div key={s.date} className="flex flex-col items-center gap-2 group">
-                                    <div className="w-20 h-20 bg-gradient-to-br from-yellow-50 to-white rounded-[2rem] flex items-center justify-center text-3xl border-2 border-yellow-100 shadow-sm group-hover:scale-110 group-hover:-rotate-3 transition-all">{s.emoji}</div>
-                                    <div className="text-center px-2">
-                                        <p className="text-[9px] font-black text-gray-800 uppercase leading-none mb-1">{s.label}</p>
-                                        <p className="text-[7.5px] font-bold text-yellow-600 uppercase tracking-tighter truncate max-w-[80px]">{s.winners.join(', ')}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
-                        <h3 className="font-black text-[10px] text-gray-400 uppercase tracking-widest mb-6 ml-2 bg-gray-50 w-fit px-3 py-1 rounded-full">🔓 Autres Trophées</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 grayscale opacity-40">
-                            {(data?.badges?.available?.trophies || []).map((m: any) => (
-                                <div key={m.id} className="flex flex-col items-center gap-2 opacity-60">
-                                    <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center text-3xl border-2 border-gray-200">{m.emoji}</div>
-                                    <span className="text-[9px] font-black text-gray-400 uppercase text-center">{m.label}</span>
-                                </div>
-                            ))}
-                            {(data?.badges?.available?.specialDays || []).map((s: any) => (
-                                <div key={s.date} className="flex flex-col items-center gap-2 opacity-60">
-                                    <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center text-3xl border-2 border-gray-200">{s.emoji}</div>
-                                    <div className="text-center">
-                                        <span className="text-[9px] font-black text-gray-400 uppercase">{s.label}</span>
-                                        <p className="text-[7.5px] font-bold text-gray-300 uppercase">{s.date}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <p className="text-center text-[9px] font-black text-gray-300 uppercase tracking-[0.4em] pt-4">Reste focus. La discipline bat le talent.</p>
-            {/* KM TAB (Optional) */}
-            {activeTab === 'km' && (
-                <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                    <div className="flex items-center gap-4">
-                        <span className="text-4xl">🏃‍♂️</span>
-                        <div>
-                            <h2 className="text-2xl font-black italic uppercase tracking-tighter">Kilomètres Courus</h2>
-                            <p className="text-xs font-bold text-gray-400 uppercase">Débloqué via 1000 Squats</p>
-                        </div>
-                    </div>
-                    <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100">
-                        <p className="text-sm font-bold text-blue-600 text-center mb-4">Fonctionnalité en cours de déploiement...</p>
-                        <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden">
-                            <div className="bg-blue-500 h-full w-1/3 animate-pulse"></div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* ZEN TAB (Optional) */}
-            {activeTab === 'zen' && (
-                <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                    <div className="flex items-center gap-4">
-                        <span className="text-4xl">🧘‍♀️</span>
-                        <div>
-                            <h2 className="text-2xl font-black italic uppercase tracking-tighter">Étirements & Zen</h2>
-                            <p className="text-xs font-bold text-gray-400 uppercase">Débloqué via 5 Badges</p>
-                        </div>
-                    </div>
-                    <div className="bg-purple-50 p-6 rounded-3xl border border-purple-100">
-                        <p className="text-sm font-bold text-purple-600 text-center mb-4">Prenez 10 minutes pour vous étirer aujourd'hui.</p>
-                        <button className="w-full bg-purple-600 text-white font-black py-4 rounded-2xl shadow-lg uppercase tracking-widest text-xs">J'AI FAIT MA SÉANCE ZEN</button>
-                    </div>
-                </div>
-            )}
 
             {/* HONOR POPUP (A12) */}
             {showHonorPopup && (
@@ -848,31 +637,6 @@ export default function ChallengeDashboard() {
                 </div>
             )}
 
-            {/* FOOTER NAV (A5) */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-100 p-2 sm:p-4 z-40 flex justify-around items-center shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-                <Link href="/" className="flex flex-col items-center gap-1 group">
-                    <span className="text-xl group-hover:scale-110 transition-transform">🏠</span>
-                    <span className="text-[8px] font-black text-blue-600 uppercase">Home</span>
-                </Link>
-                <Link href="/leaderboard" className="flex flex-col items-center gap-1 group">
-                    <span className="text-xl group-hover:scale-110 transition-transform">📊</span>
-                    <span className="text-[8px] font-black text-gray-400 uppercase italic">Rank</span>
-                </Link>
-                <Link href="/profile" className="flex flex-col items-center gap-1 group">
-                    <span className="text-xl group-hover:scale-110 transition-transform">👤</span>
-                    <span className="text-[8px] font-black text-gray-400 uppercase italic">Profil</span>
-                </Link>
-                <Link href="/profile/badges" className="flex flex-col items-center gap-1 group">
-                    <span className="text-xl group-hover:scale-110 transition-transform">🎖️</span>
-                    <span className="text-[8px] font-black text-gray-400 uppercase italic">Badges</span>
-                </Link>
-                {(session?.user as any)?.isAdmin && (
-                    <Link href="/admin" className="flex flex-col items-center gap-1 group">
-                        <span className="text-xl group-hover:scale-110 transition-transform">⚙️</span>
-                        <span className="text-[8px] font-black text-red-500 uppercase italic">Admin</span>
-                    </Link>
-                )}
-            </nav>
         </div>
     )
 }

@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 
 import AuthProvider from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
+import MobileNav from "@/components/MobileNav";
 
 export const metadata: Metadata = {
   title: "Pompes entre potes",
@@ -33,8 +34,12 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           {children}
+          <div className="pb-20 sm:pb-0">
+            <MobileNav />
+          </div>
         </AuthProvider>
       </body>
+
     </html>
   );
 }
