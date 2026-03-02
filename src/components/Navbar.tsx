@@ -52,7 +52,7 @@ export default function Navbar() {
                                     Cagnotte
                                 </Link>
                                 <Link
-                                    href="/?tab=trophees"
+                                    href="/trophies"
                                     className="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 font-bold px-3 py-2 rounded-xl transition-all text-xs uppercase tracking-wider"
                                 >
                                     <Trophy size={14} />
@@ -146,7 +146,7 @@ export default function Navbar() {
                             <Euro size={12} />
                             Cagnotte
                         </Link>
-                        <Link href="/?tab=trophees" className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-200 text-gray-600 font-bold px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-sm transition-all hover:border-blue-300">
+                        <Link href="/trophies" className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-200 text-gray-600 font-bold px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-sm transition-all hover:border-blue-300">
                             <Trophy size={12} />
                             Trophées
                         </Link>

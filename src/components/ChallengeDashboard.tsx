@@ -611,15 +611,15 @@ export default function ChallengeDashboard() {
                                             <p className="text-[10px] font-black text-white leading-none">
                                                 {ev.eventType === 'STEAL' ? (
                                                     <>
-                                                        <span className="text-orange-400">{ev.toUser?.nickname}</span> a volé <span className="text-blue-400">[{ev.badge?.name}]</span> à {ev.fromUser?.nickname}
+                                                        <Link href={`/u/${ev.toUser?.nickname}`} className="text-orange-400 hover:underline">{ev.toUser?.nickname}</Link> a volé <span className="text-blue-400">[{ev.badge?.name}]</span> à <Link href={`/u/${ev.fromUser?.nickname}`} className="hover:underline">{ev.fromUser?.nickname}</Link>
                                                     </>
                                                 ) : ev.eventType === 'CLAIM' ? (
                                                     <>
-                                                        <span className="text-green-400">{ev.toUser?.nickname}</span> a obtenu <span className="text-blue-400">[{ev.badge?.name}]</span>
+                                                        <Link href={`/u/${ev.toUser?.nickname}`} className="text-green-400 hover:underline">{ev.toUser?.nickname}</Link> a obtenu <span className="text-blue-400">[{ev.badge?.name}]</span>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <span className="text-yellow-400">{ev.toUser?.nickname}</span> a débloqué <span className="text-blue-400">[{ev.badge?.name}]</span>
+                                                        <Link href={`/u/${ev.toUser?.nickname}`} className="text-yellow-400 hover:underline">{ev.toUser?.nickname}</Link> a débloqué <span className="text-blue-400">[{ev.badge?.name}]</span>
                                                     </>
                                                 )}
                                             </p>
@@ -652,12 +652,12 @@ export default function ChallengeDashboard() {
                                             <div>
                                                 <p className="text-[9px] font-black text-gray-800 uppercase">{d.badgeName}</p>
                                                 <p className="text-[8px] font-bold text-gray-500 italic">
-                                                    Détenteur: <span className="text-gray-900">{d.holder}</span> ({d.currentValue})
+                                                    Détenteur: <Link href={`/u/${d.holder}`} className="text-gray-900 hover:underline">{d.holder}</Link> ({d.currentValue})
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-[9px] font-black text-red-600 uppercase">Menace: {d.challenger}</p>
+                                            <p className="text-[9px] font-black text-red-600 uppercase">Menace: <Link href={`/u/${d.challenger}`} className="hover:underline">{d.challenger}</Link></p>
                                             <p className="text-[8px] font-bold text-red-400 uppercase tracking-tighter">Écart: {d.diff > 0 ? `-${d.diff}` : 'Égalité'}</p>
                                         </div>
                                     </div>
@@ -681,7 +681,12 @@ export default function ChallengeDashboard() {
                                             <div className="bg-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shadow-lg">{bo.currentValue}</div>
                                         </div>
                                         <p className="text-[9px] font-black text-gray-900 uppercase leading-none mb-1">{bo.badge?.name}</p>
-                                        <p className="text-[7.5px] font-bold text-blue-500 uppercase tracking-tighter truncate">👑 {bo.currentUser?.nickname || 'Champion recherché'}</p>
+                                        <Link
+                                            href={bo.currentUser?.nickname ? `/u/${bo.currentUser.nickname}` : '#'}
+                                            className="text-[7.5px] font-bold text-blue-500 uppercase tracking-tighter truncate hover:underline block"
+                                        >
+                                            👑 {bo.currentUser?.nickname || 'Champion recherché'}
+                                        </Link>
                                     </div>
                                     <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
                                         <span className="text-4xl">{bo.badge?.emoji}</span>
