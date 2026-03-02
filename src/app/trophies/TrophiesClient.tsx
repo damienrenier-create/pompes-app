@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { Trophy, Clock, Shield, History, Flame, TrendingUp, AlertTriangle, Crown, Star, ChevronRight } from "lucide-react"
 
 interface BadgeDef {
     key: string
@@ -129,8 +130,25 @@ export default function TrophiesClient({
 
     return (
         <div className="space-y-12 pb-20">
-            {/* ⚡ SOCIAL HUD: ACTIVITÉ & DANGER */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Panthéon CTA */}
+            <div className="max-w-7xl mx-auto px-4 mb-8">
+                <Link href="/pantheon" className="w-full flex items-center justify-between p-6 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-[2rem] text-white shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all group">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-md">
+                            <Star size={24} fill="currentColor" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black uppercase tracking-tight">Découvrez le Panthéon</h2>
+                            <p className="text-white/80 text-sm font-medium italic">Une nouvelle expérience unifiée pour vos badges et trophées.</p>
+                        </div>
+                    </div>
+                    <div className="bg-white/20 p-2 rounded-full group-hover:translate-x-1 transition-transform">
+                        <ChevronRight size={24} />
+                    </div>
+                </Link>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
                 {/* Activité Récente */}
                 <div className="bg-slate-900 rounded-[2.5rem] p-8 border border-white/5 space-y-6 shadow-2xl">
                     <div className="flex items-center justify-between">

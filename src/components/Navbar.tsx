@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 import { useEffect } from "react"
-import { Home, BarChart2, Euro, Trophy, Users, Award, User, LogOut, Camera, ShieldCheck, LayoutDashboard } from "lucide-react"
+import { Home, BarChart2, Euro, Trophy, Users, Award, User, LogOut, Camera, ShieldCheck, LayoutDashboard, Star } from "lucide-react"
 
 export default function Navbar() {
     const { data: session } = useSession()
@@ -57,6 +57,13 @@ export default function Navbar() {
                                 >
                                     <Trophy size={14} />
                                     Trophées
+                                </Link>
+                                <Link
+                                    href="/pantheon"
+                                    className="flex items-center gap-1.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-black px-3 py-2 rounded-xl transition-all text-xs uppercase tracking-wider border border-indigo-100 shadow-sm"
+                                >
+                                    <Star size={14} fill="currentColor" />
+                                    Panthéon
                                 </Link>
                                 <div className="h-4 w-[1px] bg-gray-100 mx-2" />
                                 <Link
@@ -149,6 +156,10 @@ export default function Navbar() {
                         <Link href="/trophies" className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-200 text-gray-600 font-bold px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-sm transition-all hover:border-blue-300">
                             <Trophy size={12} />
                             Trophées
+                        </Link>
+                        <Link href="/pantheon" className="flex items-center gap-1.5 whitespace-nowrap bg-indigo-600 border border-indigo-500 text-white font-black px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-md transition-all">
+                            <Star size={12} fill="currentColor" />
+                            Panthéon
                         </Link>
                         <div className="w-[1px] bg-gray-200 mx-1" />
                         <Link href="/leaderboard" className="flex items-center gap-1.5 whitespace-nowrap bg-white border border-gray-200 text-gray-600 font-bold px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-wider shadow-sm transition-all hover:border-blue-300">
