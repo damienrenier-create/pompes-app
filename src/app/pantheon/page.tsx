@@ -6,6 +6,8 @@ import PantheonClient from "@/app/pantheon/PantheonClient";
 import { BADGE_DEFINITIONS, getUserSummaries } from "@/lib/badges";
 import { getRequiredRepsForDate } from "@/lib/challenge";
 
+export const dynamic = "force-dynamic";
+
 export default async function PantheonPage() {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) redirect("/login");
@@ -66,7 +68,7 @@ export default async function PantheonPage() {
 
     // Calculate Danger List (Badges close to being stolen)
     const dangerList = badgeOwnerships
-        .filter((bo: any) => bo.badge?.type === "COMPETITIVE" && bo.currentUserId && bo.currentValue > 0)
+        .filter((bo: any) => bo.badge?.type === "COMPETITIVE" && bo.currentUserId && bo.currentValue >= 0)
         .map((bo: any) => {
             const def = BADGE_DEFINITIONS.find(d => d.key === bo.badgeKey);
             if (!def) return null;

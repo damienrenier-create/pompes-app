@@ -90,7 +90,7 @@ export default function ChallengeDashboard() {
     const [data, setData] = useState<DashboardData>(DEFAULT_DASHBOARD_DATA)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
-    const [activeTab, setActiveTab] = useState<'saisie' | 'graphs' | 'cagnotte'>('saisie')
+    const [activeTab, setActiveTab] = useState<'saisie' | 'graphs' | 'cagnotte' | 'trophees'>('saisie')
     const [selectedDate, setSelectedDate] = useState<string>(DEFAULT_DASHBOARD_DATA.selectedDateISO)
     const lastFetchTime = useRef<number>(Date.now())
     const [localSets, setLocalSets] = useState<{ pushups: (number | "")[]; pullups: (number | "")[]; squats: (number | "")[] }>({
@@ -153,7 +153,7 @@ export default function ChallengeDashboard() {
 
     useEffect(() => {
         const tab = searchParams.get('tab')
-        if (tab && ['saisie', 'graphs', 'cagnotte'].includes(tab)) {
+        if (tab && ['saisie', 'graphs', 'cagnotte', 'trophees'].includes(tab)) {
             setActiveTab(tab as any)
         }
     }, [searchParams]) // React on search params change
@@ -326,10 +326,11 @@ export default function ChallengeDashboard() {
                     </div>
                 </div>
 
-                <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-100">
-                    <button onClick={() => setActiveTab('saisie')} className={`flex-1 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'saisie' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Saisie</button>
-                    <button onClick={() => setActiveTab('graphs')} className={`flex-1 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'graphs' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Graphiques</button>
-                    <button onClick={() => setActiveTab('cagnotte')} className={`flex-1 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'cagnotte' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Cagnotte</button>
+                <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-100 overflow-x-auto no-scrollbar">
+                    <button onClick={() => setActiveTab('saisie')} className={`flex-1 min-w-[80px] py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'saisie' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Saisie</button>
+                    <button onClick={() => setActiveTab('graphs')} className={`flex-1 min-w-[80px] py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'graphs' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Graphiques</button>
+                    <button onClick={() => setActiveTab('cagnotte')} className={`flex-1 min-w-[80px] py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'cagnotte' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Cagnotte</button>
+                    <button onClick={() => setActiveTab('trophees')} className={`flex-1 min-w-[80px] py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'trophees' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Trophées</button>
                 </div>
 
                 {activeTab === 'saisie' && (
@@ -591,6 +592,101 @@ export default function ChallengeDashboard() {
                                 </div>
                             ))}
                             {(data?.cagnotte?.finesList || []).length === 0 && <p className="text-center py-10 font-black text-gray-300 uppercase italic text-xs leading-relaxed tracking-widest">Tout le monde est à jour. <br /> C'est suspect.</p>}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'trophees' && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {/* Compteur de Gloire */}
+                    <div className="flex justify-between items-center px-2">
+                        <h3 className="font-black text-xs text-slate-500 uppercase tracking-widest">Compteur de gloire</h3>
+                        <span className="text-blue-600 font-black text-sm">{(data?.badges?.competitive?.ownerships || []).filter((o: any) => o.currentUser?.nickname).length} / {(data?.badges?.competitive?.ownerships || []).length}</span>
+                    </div>
+
+                    {/* Activité Récente */}
+                    <div className="bg-slate-900 rounded-[2.5rem] p-6 lg:p-8 border border-white/5 space-y-6 shadow-2xl relative overflow-hidden">
+                        <div className="flex items-center justify-between relative z-10">
+                            <h2 className="text-sm lg:text-lg font-black text-white uppercase tracking-tighter italic flex items-center gap-2">
+                                <span className="p-1 px-2 bg-indigo-500 rounded-lg text-xs not-italic">LIVE</span>
+                                Activité Récente
+                            </h2>
+                        </div>
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar relative z-10 pr-2">
+                            {(data?.badges?.competitive?.events || []).length > 0 ? (
+                                (data?.badges?.competitive?.events || []).slice(0, 15).map((ev: any) => (
+                                    <div key={ev.id} className="bg-white/5 p-4 rounded-2xl border border-white/5 transition-all hover:bg-white/10 group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                        <div className="flex gap-4 items-center">
+                                            <span className="text-3xl sm:text-4xl shrink-0 group-hover:scale-110 transition-transform">{ev.badge?.emoji}</span>
+                                            <div>
+                                                <p className="text-[11px] font-bold text-white leading-relaxed">
+                                                    {ev.eventType === 'STEAL' ? (
+                                                        <>
+                                                            <Link href={`/u/${ev.toUser?.nickname}`} className="text-orange-400 hover:underline">{ev.toUser?.nickname}</Link> a volé <span className="text-blue-400">[{ev.badge?.name}]</span> à <Link href={`/u/${ev.fromUser?.nickname}`} className="hover:underline">{ev.fromUser?.nickname}</Link>
+                                                        </>
+                                                    ) : ev.eventType === 'CLAIM' ? (
+                                                        <>
+                                                            <Link href={`/u/${ev.toUser?.nickname}`} className="text-green-400 hover:underline">{ev.toUser?.nickname}</Link> a obtenu <span className="text-blue-400">[{ev.badge?.name}]</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Link href={`/u/${ev.toUser?.nickname}`} className="text-yellow-400 hover:underline">{ev.toUser?.nickname}</Link> a débloqué <span className="text-blue-400">[{ev.badge?.name}]</span>
+                                                        </>
+                                                    )}
+                                                </p>
+                                                <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
+                                                    {new Date().getTime() - new Date(ev.createdAt).getTime() < 86400000
+                                                        ? `Il y a ${Math.round((new Date().getTime() - new Date(ev.createdAt).getTime()) / 60000)} min`
+                                                        : new Date(ev.createdAt).toLocaleDateString("fr-FR", { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).toUpperCase()
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {ev.newValue > 0 && (
+                                            <div className="text-right sm:text-center shrink-0">
+                                                <p className="font-black text-white text-lg">{ev.newValue}</p>
+                                                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mt-0.5">Record</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-slate-500 text-xs font-bold text-center italic py-4">Aucune activité récente.</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Badges en Danger */}
+                    <div className="bg-red-50 rounded-[2.5rem] p-6 lg:p-8 space-y-6 shadow-sm border border-red-100">
+                        <h2 className="text-sm lg:text-lg font-black text-red-600 uppercase tracking-tighter italic flex items-center gap-2">
+                            <span className="p-1 px-2 bg-red-100 rounded-lg text-xs not-italic">⚠️</span>
+                            Badges en Danger
+                        </h2>
+                        <div className="space-y-3">
+                            {(data?.badges?.competitive?.danger || []).length > 0 ? (
+                                (data?.badges?.competitive?.danger || []).map((d: any) => (
+                                    <div key={d.badgeKey} className="bg-white p-4 rounded-3xl border border-red-100 flex justify-between items-center group shadow-sm hover:shadow-md transition-shadow">
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-3xl sm:text-4xl group-hover:scale-110 transition-transform">{d.emoji}</span>
+                                            <div>
+                                                <p className="text-[10px] font-black text-slate-900 uppercase">{d.badgeName}</p>
+                                                <p className="text-[9px] font-bold text-slate-500 mt-1">
+                                                    Détenteur: <Link href={`/u/${d.holder}`} className="text-slate-900 hover:underline">{d.holder}</Link> ({d.currentValue})
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <p className="text-[10px] font-black text-red-600 uppercase">Menace: {d.challenger}</p>
+                                            <p className="text-[8px] font-black text-red-400 mt-1 uppercase tracking-widest bg-red-50 inline-block px-2 py-0.5 rounded-full">
+                                                {d.diff === 0 ? "Égalité" : `Écart: ${d.diff}`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-slate-500 text-xs font-bold text-center italic py-4 bg-white/50 rounded-2xl border border-dashed border-red-200">Tous les records sont hors d'atteinte... pour l'instant.</p>
+                            )}
                         </div>
                     </div>
                 </div>

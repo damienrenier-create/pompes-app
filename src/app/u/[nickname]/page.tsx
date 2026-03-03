@@ -18,8 +18,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
     const { nickname } = await params;
 
-    const user = await prisma.user.findUnique({
-        where: { nickname },
+    const user = await prisma.user.findFirst({
+        where: { nickname: { equals: nickname, mode: "insensitive" } },
         include: {
             badges: {
                 include: {

@@ -284,7 +284,7 @@ export async function GET(req: Request) {
                 }
             });
 
-            if (challenger && bo.currentValue > 0) {
+            if (challenger && bo.currentValue >= 0) {
                 const diff = bo.currentValue - challengerValue;
                 const percent = (challengerValue / bo.currentValue);
                 if (percent >= 0.9 || diff <= 2) {
