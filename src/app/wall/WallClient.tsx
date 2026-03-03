@@ -92,7 +92,7 @@ export default function WallClient({ nickname }: { nickname: string }) {
                             disabled={submitting}
                             maxLength={240}
                             placeholder={`Quoi de neuf ${nickname} ?...`}
-                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none min-h-[100px]"
+                            className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm text-gray-900 placeholder-gray-400 font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none min-h-[100px]"
                         />
                         <div className={`absolute bottom-3 right-3 text-xs font-bold ${content.length > 200 ? 'text-orange-500' : 'text-gray-400'}`}>
                             {content.length}/240

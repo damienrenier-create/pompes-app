@@ -15,7 +15,7 @@ export default async function WallPage() {
         redirect("/login");
     }
 
-    const nickname = (session.user as any).nickname;
+    const nickname = session.user.name || "Soldat";
     const isConfigured = !!process.env.WALL_ENDPOINT_URL && !!process.env.WALL_WRITE_TOKEN;
 
     return (

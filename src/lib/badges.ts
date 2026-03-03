@@ -212,36 +212,35 @@ export async function updateBadgesPostSave(userId: string) {
                 }
             });
         } else if (def.metricType === "MILESTONE_SET") {
-            summaries.forEach((s: any) => { if (s.maxSetAll >= def.threshold!) awardMilestone(s.id, def.key, 1); });
+            await Promise.all(summaries.map((s: any) => s.maxSetAll >= def.threshold! ? awardMilestone(s.id, def.key, 1) : Promise.resolve()));
             continue;
         } else if (def.metricType === "MILESTONE_TOTAL") {
-            summaries.forEach((s: any) => { if (s.totalAll >= def.threshold!) awardMilestone(s.id, def.key, 1); });
+            await Promise.all(summaries.map((s: any) => s.totalAll >= def.threshold! ? awardMilestone(s.id, def.key, 1) : Promise.resolve()));
             continue;
         } else if (def.metricType === "TIME_AWARD") {
-            summaries.forEach((s: any) => { if (s.earlyStreak >= (def.threshold || 1)) awardMilestone(s.id, def.key, s.earlyStreak); });
+            await Promise.all(summaries.map((s: any) => s.earlyStreak >= (def.threshold || 1) ? awardMilestone(s.id, def.key, s.earlyStreak) : Promise.resolve()));
             continue;
         } else if (def.metricType === "TIME_AWARD_LATE") {
-            summaries.forEach((s: any) => { if (s.lateStreak >= (def.threshold || 1)) awardMilestone(s.id, def.key, s.lateStreak); });
+            await Promise.all(summaries.map((s: any) => s.lateStreak >= (def.threshold || 1) ? awardMilestone(s.id, def.key, s.lateStreak) : Promise.resolve()));
             continue;
         } else if (def.metricType === "TIME_AWARD_EXACT") {
-            summaries.forEach((s: any) => { if (s.noonStreak >= (def.threshold || 1)) awardMilestone(s.id, def.key, s.noonStreak); });
+            await Promise.all(summaries.map((s: any) => s.noonStreak >= (def.threshold || 1) ? awardMilestone(s.id, def.key, s.noonStreak) : Promise.resolve()));
             continue;
         } else if (def.metricType === "STREAK_NO_FINES") {
-            summaries.forEach((s: any) => { if (s.fineFreeStreak >= def.threshold!) awardMilestone(s.id, def.key, s.fineFreeStreak); });
+            await Promise.all(summaries.map((s: any) => s.fineFreeStreak >= def.threshold! ? awardMilestone(s.id, def.key, s.fineFreeStreak) : Promise.resolve()));
             continue;
         } else if (def.metricType === "DATE_AWARD_HARD") {
             const dateMap: any = { 'st_patrick': '-03-17', 'dday_hero': '-06-06', 'easter_egg': '2026-04-05' };
-            summaries.forEach((s: any) => {
+            await Promise.all(summaries.map((s: any) => {
                 const target = dateMap[def.key];
-                if (s.checkDatePlayed(target)) awardMilestone(s.id, def.key, 1);
-            });
+                return s.checkDatePlayed(target) ? awardMilestone(s.id, def.key, 1) : Promise.resolve();
+            }));
             continue;
         } else if (def.metricType === "DATE_AWARD") {
-            summaries.forEach((s: any) => {
-                if ((def.key === 'st_marvin' && s.hasStMarvin) || (def.key === 'st_damien' && s.hasStDamien) || (def.key === 'st_nicolas' && s.hasStNicolas)) {
-                    awardMilestone(s.id, def.key, 1);
-                }
-            });
+            await Promise.all(summaries.map((s: any) => {
+                const isAwarded = (def.key === 'st_marvin' && s.hasStMarvin) || (def.key === 'st_damien' && s.hasStDamien) || (def.key === 'st_nicolas' && s.hasStNicolas);
+                return isAwarded ? awardMilestone(s.id, def.key, 1) : Promise.resolve();
+            }));
             continue;
         } else if (def.metricType === "APRIL_FOOLS_TIER") {
             // Evaluated explicitly on April 1st.
@@ -254,15 +253,16 @@ export async function updateBadgesPostSave(userId: string) {
                 }).filter(x => x.todayReps > 0).sort((a: any, b: any) => b.todayReps - a.todayReps);
 
                 if (dayScores.length > 0) {
-                    let awardedValues = 0;
                     if (def.key === "april_fools_gros") {
-                        awardMilestone(dayScores[0].id, def.key, dayScores[0].todayReps);
+                        await awardMilestone(dayScores[0].id, def.key, dayScores[0].todayReps);
                     } else if (def.key === "april_fools_petit" && dayScores.length > 1) {
-                        awardMilestone(dayScores[dayScores.length - 1].id, def.key, dayScores[dayScores.length - 1].todayReps);
+                        await awardMilestone(dayScores[dayScores.length - 1].id, def.key, dayScores[dayScores.length - 1].todayReps);
                     } else if (def.key === "april_fools_moyen" && dayScores.length > 2) {
+                        const midPromises = [];
                         for (let i = 1; i < dayScores.length - 1; i++) {
-                            awardMilestone(dayScores[i].id, def.key, dayScores[i].todayReps);
+                            midPromises.push(awardMilestone(dayScores[i].id, def.key, dayScores[i].todayReps));
                         }
+                        await Promise.all(midPromises);
                     }
                 }
             }

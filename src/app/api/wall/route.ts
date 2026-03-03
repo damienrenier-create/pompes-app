@@ -19,21 +19,27 @@ export async function GET() {
         });
 
         if (!response.ok) {
-            throw new Error(`Apps Script responded with status: ${response.status}`);
+            const txt = await response.text();
+            throw new Error(`Statut ${response.status}: ${txt.substring(0, 100)}...`);
         }
 
-        const data = await response.json();
-        return NextResponse.json(data);
+        const txt = await response.text();
+        try {
+            const data = JSON.parse(txt);
+            return NextResponse.json(data);
+        } catch (e) {
+            throw new Error(`Le Google Script ne renvoie pas du JSON valide (L'accès est-il bien sur "Anyone" ?). Reçu: ${txt.substring(0, 100)}...`);
+        }
     } catch (error: any) {
         console.error("Wall GET error:", error);
-        return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });
+        return NextResponse.json({ error: error.message || "Impossible de joindre le Google Script" }, { status: 500 });
     }
 }
 
 export async function POST(req: Request) {
     // Auth is mandatory
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || !(session.user as any).nickname) {
+    if (!session || !session.user || !session.user.name) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -58,7 +64,7 @@ export async function POST(req: Request) {
 
         const payload = {
             token: writeToken,
-            nickname: (session.user as any).nickname,
+            nickname: session.user.name,
             message: message.trim(),
             createdAt: new Date().toISOString()
         };

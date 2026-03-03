@@ -84,140 +84,136 @@ export default function PantheonClient({
     ];
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] text-slate-900 pb-20 font-sans">
-            {/* Header / Hero */}
-            <div className="bg-white border-b border-slate-200 pt-16 pb-12 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+        <>
+            <div className="min-h-screen bg-[#F8FAFC] text-slate-900 pb-20 font-sans">
+                {/* Header / Hero */}
+                <div className="bg-white border-b border-slate-200 pt-16 pb-12 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full">
-                                    Hall of Fame
-                                </span>
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            <div>
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="bg-indigo-100 text-indigo-700 text-[10px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full">
+                                        Hall of Fame
+                                    </span>
+                                </div>
+                                <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-none mb-4">
+                                    Le <span className="text-indigo-600">Panthéon</span>
+                                </h1>
+                                <p className="text-slate-500 font-medium max-w-xl">
+                                    L'arène ultime des champions. Consultez vos titres, découvrez le catalogue et surveillez la progression de vos rivaux.
+                                </p>
                             </div>
-                            <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-none mb-4">
-                                Le <span className="text-indigo-600">Panthéon</span>
-                            </h1>
-                            <p className="text-slate-500 font-medium max-w-xl">
-                                L'arène ultime des champions. Consultez vos titres, découvrez le catalogue et surveillez la progression de vos rivaux.
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Link
-                                href="/"
-                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-3 rounded-2xl transition-all flex items-center gap-2 border border-slate-200 shadow-sm"
-                            >
-                                <ChevronRight size={18} className="rotate-180" />
-                                Dashboard
-                            </Link>
+                            <div className="flex items-center gap-3">
+                                <Link
+                                    href="/"
+                                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-3 rounded-2xl transition-all flex items-center gap-2 border border-slate-200 shadow-sm"
+                                >
+                                    <ChevronRight size={18} className="rotate-180" />
+                                    Dashboard
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
-                {/* SECTION A: PANTHÉON GLOBAL (À LA UNE) */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
+                    {/* SECTION A: PANTHÉON GLOBAL (À LA UNE) */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
 
-                    {/* Activité Récente */}
-                    <div className="lg:col-span-5 bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col h-full">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
-                                    <History size={20} />
-                                </div>
-                                <h2 className="text-lg font-black uppercase tracking-tight">Journal de Gloire</h2>
-                            </div>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Temps réel</span>
-                        </div>
-
-                        <div className="space-y-4 flex-1 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
-                            {recentEvents.length > 0 ? recentEvents.map((event: any, i: number) => (
-                                <div key={i} className="flex gap-4 p-4 rounded-2xl border border-slate-50 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all group">
-                                    <div className="text-2xl mt-0.5 group-hover:scale-110 transition-transform">{event.badge?.emoji}</div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-xs font-black text-slate-800 uppercase tracking-tight">
-                                                {event.eventType === 'STEAL' ? (
-                                                    <React.Fragment><span className="text-orange-600">{event.toUser?.nickname}</span> a <span className="underline decoration-orange-200">volé</span></React.Fragment>
-                                                ) : <span className="text-green-600">{event.toUser?.nickname}</span>}
-                                            </p>
-                                            <span className="text-[9px] font-bold text-slate-300">{formatTime(event.createdAt)}</span>
-                                        </div>
-                                        <p className="text-sm text-slate-600 font-medium">
-                                            {event.eventType === 'STEAL' ? (
-                                                <React.Fragment>Le badge <span className="font-bold text-slate-900">[{event.badge?.name}]</span> à {event.fromUser?.nickname}</React.Fragment>
-                                            ) : (
-                                                <React.Fragment>A débloqué la distinction <span className="font-bold text-slate-900">[{event.badge?.name}]</span></React.Fragment>
-                                            )}
-                                        </p>
-                                    </div>
-                                </div>
-                            )) : (
-                                <p className="text-slate-400 text-center py-10 font-medium italic">Aucun mouvement récent...</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Danger List & Kings */}
-                    <div className="lg:col-span-7 flex flex-col gap-6">
-
-                        {/* Menaces Imminentes */}
-                        <div className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+                        {/* Activité Récente */}
+                        <div className="lg:col-span-5 bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100 flex flex-col h-full">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-red-50 text-red-600 rounded-xl">
-                                        <Shield size={20} />
+                                    <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                                        <History size={20} />
                                     </div>
-                                    <h2 className="text-lg font-black uppercase tracking-tight">Menaces de Vol</h2>
+                                    <h2 className="text-lg font-black uppercase tracking-tight">Journal de Gloire</h2>
                                 </div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Temps réel</span>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {dangerList.length > 0 ? dangerList.map((danger, i) => (
-                                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-red-50/50 border border-red-100 group">
-                                        <div>
-                                            <p className="text-[10px] font-black text-red-600 uppercase mb-0.5">{danger.badgeName}</p>
-                                            <p className="text-xs text-slate-600 font-bold">
-                                                Détenteur: <span className="text-slate-900">{danger.holder}</span>
+                            <div className="space-y-4 flex-1 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
+                                {recentEvents.length > 0 ? recentEvents.map((event: any, i: number) => (
+                                    <div key={i} className="flex gap-4 p-4 rounded-2xl border border-slate-50 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all group">
+                                        <div className="text-2xl mt-0.5 group-hover:scale-110 transition-transform">{event.badge?.emoji}</div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <p className="text-xs font-black text-slate-800 uppercase tracking-tight">
+                                                    {event.eventType === 'STEAL' ? (
+                                                        <React.Fragment><span className="text-orange-600">{event.toUser?.nickname}</span> a <span className="underline decoration-orange-200">volé</span></React.Fragment>
+                                                    ) : <span className="text-green-600">{event.toUser?.nickname}</span>}
+                                                </p>
+                                                <span className="text-[9px] font-bold text-slate-300">{formatTime(event.createdAt)}</span>
+                                            </div>
+                                            <p className="text-sm text-slate-600 font-medium">
+                                                {event.eventType === 'STEAL' ? (
+                                                    <React.Fragment>Le badge <span className="font-bold text-slate-900">[{event.badge?.name}]</span> à {event.fromUser?.nickname}</React.Fragment>
+                                                ) : (
+                                                    <React.Fragment>A débloqué la distinction <span className="font-bold text-slate-900">[{event.badge?.name}]</span></React.Fragment>
+                                                )}
                                             </p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-black text-red-400 uppercase">Écart: {danger.diff} <span className="text-[8px] text-red-300">({danger.currentValue} vs {danger.challengerValue})</span></p>
-                                            <p className="text-[11px] font-bold text-red-700">⚔️ {danger.challenger}</p>
                                         </div>
                                     </div>
                                 )) : (
-                                    <div className="md:col-span-2 py-6 text-center">
-                                        <CheckCircle2 className="mx-auto text-green-200 mb-2" size={32} />
-                                        <p className="text-slate-400 text-sm font-bold uppercase tracking-widest">Tous les rois dorment tranquilles</p>
-                                    </div>
+                                    <p className="text-slate-400 text-center py-10 font-medium italic">Aucun mouvement récent...</p>
                                 )}
                             </div>
                         </div>
 
-                        {/* Hall of Kings (Top Holders) */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 h-full">
-                            {badgeOwnerships
-                                .filter(bo => bo.badge?.type === "COMPETITIVE" && bo.currentUserId)
-                                .slice(0, 3)
-                                .map((bo, i) => (
-                                    <div key={i} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center group hover:-translate-y-1 transition-transform relative">
-                                        <span className="text-4xl mb-3 group-hover:scale-125 transition-transform">{bo.badge?.emoji}</span>
-                                        <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">{bo.badge?.name}</p>
-                                        <p className="text-xs font-black text-slate-800 uppercase">{bo.currentUser?.nickname}</p>
-                                        <div className="absolute top-2 right-2 text-[9px] font-black text-slate-300">VAL: {bo.currentValue}</div>
+                        {/* Danger List & Kings */}
+                        <div className="lg:col-span-7 flex flex-col gap-6">
+
+                            {/* Menaces Imminentes */}
+                            <div className="bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2.5 bg-red-50 text-red-600 rounded-xl">
+                                            <Shield size={20} />
+                                        </div>
+                                        <h2 className="text-lg font-black uppercase tracking-tight">Menaces de Vol</h2>
                                     </div>
-                                ))
-                            }
-                        </div>
-                        <div className="mt-4 flex justify-end">
-                            <Link href="#vitrine" className="bg-indigo-600 rounded-xl px-4 py-2 shadow-md hover:bg-slate-900 transition-colors flex items-center gap-2 text-white group">
-                                <Users size={16} />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Voir tous les concurrents</span>
-                            </Link>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {dangerList.length > 0 ? dangerList.map((danger, i) => (
+                                        <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-red-50/50 border border-red-100 group">
+                                            <div>
+                                                <p className="text-[10px] font-black text-red-600 uppercase mb-0.5">{danger.badgeName}</p>
+                                                <p className="text-xs text-slate-600 font-bold">
+                                                    Détenteur: <span className="text-slate-900">{danger.holder}</span>
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-black text-red-400 uppercase">Écart: {danger.diff} <span className="text-[8px] text-red-300">({danger.currentValue} vs {danger.challengerValue})</span></p>
+                                                <p className="text-[11px] font-bold text-red-700">⚔️ {danger.challenger}</p>
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <div className="md:col-span-2 py-6 text-center">
+                                            <CheckCircle2 className="mx-auto text-green-200 mb-2" size={32} />
+                                            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest">Tous les rois dorment tranquilles</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Hall of Kings (Top Holders) */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 h-full">
+                                {badgeOwnerships
+                                    .filter(bo => bo.badge?.type === "COMPETITIVE" && bo.currentUserId)
+                                    .slice(0, 3)
+                                    .map((bo, i) => (
+                                        <div key={i} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center group hover:-translate-y-1 transition-transform relative">
+                                            <span className="text-4xl mb-3 group-hover:scale-125 transition-transform">{bo.badge?.emoji}</span>
+                                            <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">{bo.badge?.name}</p>
+                                            <p className="text-xs font-black text-slate-800 uppercase">{bo.currentUser?.nickname}</p>
+                                            <div className="absolute top-2 right-2 text-[9px] font-black text-slate-300">VAL: {bo.currentValue}</div>
+                                        </div>
+                                    ))
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -248,7 +244,10 @@ export default function PantheonClient({
                                                         {b.badge?.type}
                                                     </span>
                                                 </div>
-                                                <p className="text-[10px] text-slate-500 font-medium leading-tight">{b.badge?.description}</p>
+                                                <p className="text-[10px] text-slate-500 font-medium leading-tight mb-1">{b.badge?.description}</p>
+                                                {b.badge?.type === 'MILESTONE' && b.currentValue > 1 && (
+                                                    <p className="text-[9px] font-black text-indigo-500 uppercase">Série courante : {b.currentValue}</p>
+                                                )}
                                             </div>
                                         </div>
                                     )) : (
@@ -383,9 +382,12 @@ export default function PantheonClient({
                                                     <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] font-black text-slate-600">
                                                         {(holder.currentUser?.nickname as string || "U").charAt(0)}
                                                     </div>
-                                                    <span className="text-xs font-black text-slate-800 uppercase group-hover/h:text-indigo-600 transition-colors">
-                                                        {holder.currentUser?.nickname}
-                                                    </span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-black text-slate-800 uppercase group-hover/h:text-indigo-600 transition-colors">
+                                                            {holder.currentUser?.nickname}
+                                                        </span>
+                                                        <span className="text-[9px] font-bold text-slate-400">Score: {holder.currentValue}</span>
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <span className="text-[10px] font-bold text-slate-300 italic">Personne pour le moment</span>
@@ -460,56 +462,58 @@ export default function PantheonClient({
             </div>
 
             {/* Event Modal */}
-            {selectedEvent && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedEvent(null)}></div>
-                    <div className="relative bg-white w-full max-w-lg rounded-[3rem] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
-                        <div className="h-2 bg-purple-500 w-full"></div>
-                        <button
-                            onClick={() => setSelectedEvent(null)}
-                            className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 transition-colors"
-                        >
-                            <X size={24} />
-                        </button>
-
-                        <div className="p-10 text-center">
-                            <div className="text-7xl mb-6">{selectedEvent.emoji}</div>
-                            <p className="text-xs font-black text-purple-600 uppercase tracking-[0.3em] mb-2">{selectedEvent.date}</p>
-                            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-4">{selectedEvent.name}</h2>
-                            <p className="text-slate-500 font-medium leading-relaxed mb-8">
-                                {selectedEvent.description}
-                            </p>
-
-                            <div className="bg-slate-50 rounded-3xl p-6 mb-8 text-left border border-slate-100">
-                                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Conditions d'obtention</h4>
-                                <ul className="space-y-3">
-                                    <li className="flex items-start gap-3 text-sm text-slate-700 font-bold">
-                                        <div className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                            <CheckCircle2 size={12} />
-                                        </div>
-                                        Validez au moins une série ce jour-là.
-                                    </li>
-                                    {['st_patrick', 'dday', 'nouvel_an'].includes(selectedEvent.id) && (
-                                        <li className="flex items-start gap-3 text-sm text-slate-700 font-bold">
-                                            <div className="w-4 h-4 rounded-full bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 mt-0.5 ml-0.5">
-                                                <Target size={10} />
-                                            </div>
-                                            HARDCORE : Atteindre le quota total du jour (Jours de l'année).
-                                        </li>
-                                    )}
-                                </ul>
-                            </div>
-
+            {
+                selectedEvent && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSelectedEvent(null)}></div>
+                        <div className="relative bg-white w-full max-w-lg rounded-[3rem] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+                            <div className="h-2 bg-purple-500 w-full"></div>
                             <button
                                 onClick={() => setSelectedEvent(null)}
-                                className="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl transition-all"
+                                className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 transition-colors"
                             >
-                                J'ai compris
+                                <X size={24} />
                             </button>
+
+                            <div className="p-10 text-center">
+                                <div className="text-7xl mb-6">{selectedEvent.emoji}</div>
+                                <p className="text-xs font-black text-purple-600 uppercase tracking-[0.3em] mb-2">{selectedEvent.date}</p>
+                                <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-4">{selectedEvent.name}</h2>
+                                <p className="text-slate-500 font-medium leading-relaxed mb-8">
+                                    {selectedEvent.description}
+                                </p>
+
+                                <div className="bg-slate-50 rounded-3xl p-6 mb-8 text-left border border-slate-100">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Conditions d'obtention</h4>
+                                    <ul className="space-y-3">
+                                        <li className="flex items-start gap-3 text-sm text-slate-700 font-bold">
+                                            <div className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                                <CheckCircle2 size={12} />
+                                            </div>
+                                            Validez au moins une série ce jour-là.
+                                        </li>
+                                        {['st_patrick', 'dday', 'nouvel_an'].includes(selectedEvent.id) && (
+                                            <li className="flex items-start gap-3 text-sm text-slate-700 font-bold">
+                                                <div className="w-4 h-4 rounded-full bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0 mt-0.5 ml-0.5">
+                                                    <Target size={10} />
+                                                </div>
+                                                HARDCORE : Atteindre le quota total du jour (Jours de l'année).
+                                            </li>
+                                        )}
+                                    </ul>
+                                </div>
+
+                                <button
+                                    onClick={() => setSelectedEvent(null)}
+                                    className="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl transition-all"
+                                >
+                                    J'ai compris
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <style jsx global>{`
                 .animate-spin-slow {
@@ -530,6 +534,6 @@ export default function PantheonClient({
                     border-radius: 10px;
                 }
             `}</style>
-        </div>
+        </>
     );
 }

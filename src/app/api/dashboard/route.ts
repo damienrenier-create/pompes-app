@@ -86,7 +86,11 @@ export async function GET(req: Request) {
                     totalPerfectDays++;
                     if (!streakBroken) currentStreak++;
                 } else {
-                    streakBroken = true;
+                    // Only break streak if it's NOT today, or if today is completely over.
+                    // To be safe and generous: if today isn't completed yet, we just don't increment the streak, but we don't break the backward chain.
+                    if (d !== today) {
+                        streakBroken = true;
+                    }
                 }
             }
 

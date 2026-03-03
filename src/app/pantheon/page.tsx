@@ -101,10 +101,8 @@ export default async function PantheonPage() {
             const challengerValue = getScore(challenger);
             const diff = bo.currentValue - challengerValue;
 
-            // Show if diff is small (e.g., within 10% or absolute small range)
-            const percentClose = (challengerValue / bo.currentValue);
-
-            if (percentClose >= 0.8 || diff <= 5) {
+            // Show if it's a competitive badge and we have a valid challenger
+            if (challenger) {
                 return {
                     badgeKey: bo.badgeKey,
                     badgeName: bo.badge?.name,
