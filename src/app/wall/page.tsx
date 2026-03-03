@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import WallClient from "./WallClient";
+import GazetteXP from "./GazetteXP";
 
 export const metadata = {
     title: "Le Mur - Pompes entre potes",
@@ -27,6 +28,7 @@ export default async function WallPage() {
                 </div>
 
                 <WallClient nickname={nickname} />
+                <GazetteXP />
             </main>
         </div>
     );

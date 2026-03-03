@@ -58,6 +58,16 @@ export async function POST(req: Request) {
         const newXp = allXpNew.find(x => x.id === userId);
 
         if (newXp && oldXp && newXp.level > oldXp.level) {
+            const xpGained = newXp.totalXP - oldXp.totalXP;
+            const dailyPushups = (sets.pushups || []).reduce((a: number, b: number) => a + Number(b), 0);
+            const dailyPullups = (sets.pullups || []).reduce((a: number, b: number) => a + Number(b), 0);
+            const dailySquats = (sets.squats || []).reduce((a: number, b: number) => a + Number(b), 0);
+            const totalDaily = dailyPushups + dailyPullups + dailySquats;
+
+            const reason = totalDaily > 0
+                ? `suite à un entraînement de ${totalDaily} reps`
+                : `grâce à la validation de badges ou bonus inactifs`;
+
             await (prisma as any).badgeEvent.create({
                 data: {
                     eventType: "LEVEL_UP",
@@ -65,7 +75,12 @@ export async function POST(req: Request) {
                     toUserId: userId,
                     newValue: newXp.level,
                     previousValue: oldXp.level,
-                    metadata: JSON.stringify({ animal: newXp.animal, emoji: newXp.emoji })
+                    metadata: JSON.stringify({
+                        animal: newXp.animal,
+                        emoji: newXp.emoji,
+                        xpGained,
+                        reason
+                    })
                 }
             });
         }

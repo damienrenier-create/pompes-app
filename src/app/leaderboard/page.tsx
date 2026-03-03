@@ -25,22 +25,32 @@ export default async function LeaderboardPage({
     if (selectedExercise === "XP") {
         const allUsers = await prisma.user.findMany({
             where: { nickname: { not: 'modo' } },
-            include: { sets: true }
+            select: { id: true, nickname: true, sets: true } // FORCE TO GET NICKNAME
         });
         const badgeOwnerships = await (prisma as any).badgeOwnership.findMany();
         const xpScores = calculateAllUsersXP(allUsers, badgeOwnerships);
 
+        // Find max XP to scale the bar correctly if percentage is not wanted
+        const maxXP = xpScores.length > 0 ? xpScores[0].totalXP : 1;
+
         totalGroupReps = xpScores.reduce((sum, entry) => sum + entry.totalXP, 0);
-        leaderboard = xpScores.map(x => ({
-            userId: x.id,
-            nickname: x.nickname || "Inconnu",
-            totalReps: x.totalXP,
-            level: x.level,
-            animal: x.animal,
-            emoji: x.emoji,
-            progress: x.progress,
-            xpNextLvl: x.xpNextLvl
-        })).sort((a: any, b: any) => b.totalReps - a.totalReps);
+        leaderboard = xpScores.map(x => {
+            // Re-bind the nickname safely from the allUsers array in case it slipped out
+            const safeNickname = allUsers.find(u => u.id === x.id)?.nickname || "Inconnu";
+            return {
+                userId: x.id,
+                nickname: safeNickname,
+                totalReps: x.totalXP,
+                level: x.level,
+                animal: x.animal,
+                emoji: x.emoji,
+                progress: x.progress,
+                xpNextLvl: x.xpNextLvl,
+                nextAnimal: x.nextAnimal,
+                nextEmoji: x.nextEmoji,
+                maxXP // pass it to size the bar
+            };
+        }).sort((a: any, b: any) => b.totalReps - a.totalReps);
     } else {
         // Query 1: Group by userId and sum reps
         const logs = await prisma.exerciseSet.groupBy({
@@ -84,7 +94,7 @@ export default async function LeaderboardPage({
                 </h1>
 
                 <div className="flex justify-center flex-wrap gap-2 mt-4">
-                    {(['XP', 'ALL', 'PUSHUP', 'PULLUP', 'SQUAT'] as const).map(ex => (
+                    {(['ALL', 'PUSHUP', 'PULLUP', 'SQUAT', 'XP'] as const).map(ex => (
                         <Link
                             key={ex}
                             href={`/leaderboard?exercise=${ex}`}
@@ -111,17 +121,27 @@ export default async function LeaderboardPage({
 
                 <div className="space-y-4">
                     {leaderboard.map((entry) => {
-                        const percentage = totalGroupReps > 0 ? (entry.totalReps / totalGroupReps) * 100 : 0;
+                        let barValue = 0;
+                        let displayValue = "";
+
+                        if (selectedExercise === 'XP') {
+                            barValue = entry.maxXP > 0 ? (entry.totalReps / entry.maxXP) * 100 : 0;
+                            displayValue = `${entry.totalReps.toLocaleString('fr-FR')} XP`;
+                        } else {
+                            barValue = totalGroupReps > 0 ? (entry.totalReps / totalGroupReps) * 100 : 0;
+                            displayValue = `${barValue.toFixed(1)}%`;
+                        }
+
                         return (
                             <div key={entry.userId} className="space-y-1">
                                 <div className="flex justify-between text-sm font-medium">
                                     <span className="text-slate-300">{entry.nickname}</span>
-                                    <span className="text-indigo-400 font-mono">{percentage.toFixed(1)}%</span>
+                                    <span className="text-indigo-400 font-mono">{displayValue}</span>
                                 </div>
                                 <div className="h-4 w-full bg-slate-800 rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full transition-all duration-1000"
-                                        style={{ width: `${percentage}%` }}
+                                        style={{ width: `${barValue}%` }}
                                     />
                                 </div>
                             </div>
@@ -169,9 +189,9 @@ export default async function LeaderboardPage({
                                         </div>
                                         {selectedExercise === 'XP' && entry.xpNextLvl && (
                                             <div className="mt-2 w-full max-w-[200px]">
-                                                <div className="flex justify-between text-[9px] font-bold text-slate-500 uppercase mb-1">
+                                                <div className="flex justify-between text-[9px] font-bold text-slate-500 uppercase mb-1 whitespace-nowrap gap-4">
                                                     <span>Niveau Suivant</span>
-                                                    <span>Lv.{entry.level + 1} ({entry.xpNextLvl.toLocaleString('fr-FR')} XP)</span>
+                                                    <span className="text-right">Lv.{entry.level + 1} {entry.nextAnimal} {entry.nextEmoji} ({entry.xpNextLvl.toLocaleString('fr-FR')} XP)</span>
                                                 </div>
                                                 <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner">
                                                     <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${entry.progress}%` }} />

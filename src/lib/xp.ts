@@ -280,17 +280,21 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
         // F. Final Level Calc
         const level = calculateLevel(totalXP);
         const details = getLevelDetails(level);
+        const nextDetails = getLevelDetails(level + 1);
         const xpCurrentLvl = getXPForLevel(level);
         const xpNextLvl = getXPForLevel(level + 1);
         const progress = Math.min(100, Math.max(0, ((totalXP - xpCurrentLvl) / (xpNextLvl - xpCurrentLvl)) * 100));
 
         xpUserMap.set(u.id, {
             id: u.id,
+            nickname: u.nickname,
             totalXP,
             level,
             animal: details.name,
             emoji: details.emoji,
             belt: details.belt,
+            nextAnimal: nextDetails.name,
+            nextEmoji: nextDetails.emoji,
             xpCurrentLvl,
             xpNextLvl,
             progress: Math.floor(progress)

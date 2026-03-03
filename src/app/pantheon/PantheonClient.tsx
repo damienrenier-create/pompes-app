@@ -561,7 +561,7 @@ export default function PantheonClient({
                                                     {userXP && <span className="text-[8px] font-black text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded uppercase"> {userXP.totalXP.toLocaleString('fr-FR')} XP</span>}
                                                 </div>
                                                 {userXP && (
-                                                    <div className="w-full max-w-[120px]" title={`Prochain niveau : Lv.${userXP.level + 1}`}>
+                                                    <div className="w-full max-w-[120px]" title={`Prochain niveau : Lv.${userXP.level + 1} ${userXP.nextAnimal} ${userXP.nextEmoji}`}>
                                                         <div className="h-1 w-full bg-slate-800/50 rounded-full overflow-hidden">
                                                             <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${userXP.progress}%` }} />
                                                         </div>
