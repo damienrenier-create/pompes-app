@@ -185,7 +185,7 @@ export default function PantheonClient({
                                             </p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-[10px] font-black text-red-400 uppercase">Écart: {danger.diff}</p>
+                                            <p className="text-[10px] font-black text-red-400 uppercase">Écart: {danger.diff} <span className="text-[8px] text-red-300">({danger.currentValue} vs {danger.challengerValue})</span></p>
                                             <p className="text-[11px] font-bold text-red-700">⚔️ {danger.challenger}</p>
                                         </div>
                                     </div>
@@ -204,16 +204,19 @@ export default function PantheonClient({
                                 .filter(bo => bo.badge?.type === "COMPETITIVE" && bo.currentUserId)
                                 .slice(0, 3)
                                 .map((bo, i) => (
-                                    <div key={i} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center group hover:-translate-y-1 transition-transform">
+                                    <div key={i} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center group hover:-translate-y-1 transition-transform relative">
                                         <span className="text-4xl mb-3 group-hover:scale-125 transition-transform">{bo.badge?.emoji}</span>
                                         <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">{bo.badge?.name}</p>
                                         <p className="text-xs font-black text-slate-800 uppercase">{bo.currentUser?.nickname}</p>
+                                        <div className="absolute top-2 right-2 text-[9px] font-black text-slate-300">VAL: {bo.currentValue}</div>
                                     </div>
                                 ))
                             }
-                            <Link href="#vitrine" className="bg-indigo-600 rounded-3xl p-6 shadow-lg shadow-indigo-200 hover:bg-slate-900 transition-colors flex flex-col items-center justify-center text-center group">
-                                <Users className="text-white mb-2" size={24} />
-                                <p className="text-[10px] font-black text-indigo-100 uppercase tracking-widest">Voir tous les concurrents</p>
+                        </div>
+                        <div className="mt-4 flex justify-end">
+                            <Link href="#vitrine" className="bg-indigo-600 rounded-xl px-4 py-2 shadow-md hover:bg-slate-900 transition-colors flex items-center gap-2 text-white group">
+                                <Users size={16} />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Voir tous les concurrents</span>
                             </Link>
                         </div>
                     </div>
@@ -233,25 +236,28 @@ export default function PantheonClient({
                             {/* Transferable / Earned Badges */}
                             <div className="space-y-4">
                                 <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Titres Possédés</p>
-                                {currentUser?.badges?.length > 0 ? currentUser.badges.map((b: any, i: number) => (
-                                    <div key={i} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
-                                        <span className="text-3xl">{b.badge?.emoji}</span>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <h3 className="text-sm font-black text-slate-900 uppercase">{b.badge?.name}</h3>
-                                                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${b.badge?.type === 'COMPETITIVE' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-600'}`}>
-                                                    {b.badge?.type}
-                                                </span>
+                                {(() => {
+                                    const personalBadges = badgeOwnerships.filter(bo => bo.currentUserId === currentUser?.id);
+                                    return personalBadges.length > 0 ? personalBadges.map((b: any, i: number) => (
+                                        <div key={i} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                                            <span className="text-3xl">{b.badge?.emoji}</span>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-0.5">
+                                                    <h3 className="text-sm font-black text-slate-900 uppercase">{b.badge?.name}</h3>
+                                                    <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter ${b.badge?.type === 'COMPETITIVE' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-600'}`}>
+                                                        {b.badge?.type}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 font-medium leading-tight">{b.badge?.description}</p>
                                             </div>
-                                            <p className="text-[10px] text-slate-500 font-medium leading-tight">{b.badge?.description}</p>
                                         </div>
-                                    </div>
-                                )) : (
-                                    <div className="p-10 border-2 border-dashed border-slate-100 rounded-3xl text-center">
-                                        <CircleDashed className="mx-auto text-slate-200 mb-2 animate-spin-slow" size={32} />
-                                        <p className="text-xs font-bold text-slate-400 uppercase">Aucun titre pour le moment</p>
-                                    </div>
-                                )}
+                                    )) : (
+                                        <div className="p-10 border-2 border-dashed border-slate-100 rounded-3xl text-center">
+                                            <CircleDashed className="mx-auto text-slate-200 mb-2 animate-spin-slow" size={32} />
+                                            <p className="text-xs font-bold text-slate-400 uppercase">Aucun titre pour le moment</p>
+                                        </div>
+                                    )
+                                })()}
                             </div>
 
                             {/* Virtual Milestones */}
@@ -428,7 +434,7 @@ export default function PantheonClient({
                                             </div>
                                             <div>
                                                 <h3 className="font-black text-white uppercase group-hover:text-indigo-400 transition-colors">{user.nickname}</h3>
-                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{virtualScore} Distinction(s)</p>
+                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{userOwnerships.length + virtualScore} Distinction(s)</p>
                                             </div>
                                         </div>
                                     </div>

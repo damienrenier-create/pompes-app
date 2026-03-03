@@ -18,7 +18,10 @@ export default async function TrophiesPage() {
     // Fetch all needed data for social hub + personal trophies
     const [sets, allUsers, badgeOwnerships, recentEvents] = await Promise.all([
         prisma.exerciseSet.findMany({ where: { userId } }),
-        prisma.user.findMany({ include: { sets: true } }),
+        prisma.user.findMany({
+            where: { nickname: { not: 'modo' } },
+            include: { sets: true }
+        }),
         prisma.badgeOwnership.findMany({
             include: {
                 badge: true,

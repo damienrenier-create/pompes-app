@@ -36,6 +36,7 @@ export async function GET(req: Request) {
         const startDate30 = formatDateISO(d30);
 
         const allUsers = (await (prisma.user as any).findMany({
+            where: { nickname: { not: 'modo' } },
             include: {
                 sets: true,
                 fines: true,

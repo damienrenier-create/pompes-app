@@ -31,6 +31,7 @@ export default async function LeaderboardPage({
 
     // Query 2: Fetch all relevant users to get nicknames
     const users = await prisma.user.findMany({
+        where: { nickname: { not: 'modo' } },
         select: {
             id: true,
             nickname: true,

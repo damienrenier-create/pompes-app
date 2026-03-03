@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Trophy, Users, Star, User } from "lucide-react"
+import { Home, Trophy, Users, Star, User, MessageSquare } from "lucide-react"
 
 export default function MobileNav() {
     const pathname = usePathname()
@@ -33,6 +33,14 @@ export default function MobileNav() {
                 >
                     <Users size={22} className={`group-hover:scale-110 transition-transform ${pathname?.startsWith('/leaderboard') ? 'stroke-[2.5px]' : ''}`} />
                     <span className="text-[10px] font-black uppercase tracking-wider">Classement</span>
+                </Link>
+
+                <Link
+                    href="/wall"
+                    className={`flex flex-col items-center gap-1 group ${pathname === '/wall' ? 'text-blue-600' : 'text-gray-400'}`}
+                >
+                    <MessageSquare size={22} className={`group-hover:scale-110 transition-transform ${pathname === '/wall' ? 'stroke-[2.5px]' : ''}`} />
+                    <span className="text-[10px] font-black uppercase tracking-wider">Mur</span>
                 </Link>
 
                 <Link

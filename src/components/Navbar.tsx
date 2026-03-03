@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 import { useEffect } from "react"
-import { Home, Users, User, LogOut, Camera, ShieldCheck, Star } from "lucide-react"
+import { Home, Users, User, LogOut, Camera, ShieldCheck, Star, MessageSquare } from "lucide-react"
 
 export default function Navbar() {
     const { data: session } = useSession()
@@ -44,6 +44,14 @@ export default function Navbar() {
                                 >
                                     <Users size={14} />
                                     Leaderboard
+                                </Link>
+                                <div className="h-4 w-[1px] bg-gray-100 mx-2" />
+                                <Link
+                                    href="/wall"
+                                    className="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 font-bold px-3 py-2 rounded-xl transition-all text-xs uppercase tracking-wider"
+                                >
+                                    <MessageSquare size={14} />
+                                    Mur
                                 </Link>
                             </div>
                         )}

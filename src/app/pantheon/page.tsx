@@ -20,9 +20,11 @@ export default async function PantheonPage() {
         badgeDefinitions,
     ] = await Promise.all([
         (prisma as any).user.findMany({
+            where: { nickname: { not: 'modo' } },
             include: {
                 sets: true,
                 fines: true,
+                badges: true,
             }
         }),
         (prisma as any).badgeOwnership.findMany({
@@ -69,33 +71,34 @@ export default async function PantheonPage() {
             const def = BADGE_DEFINITIONS.find(d => d.key === bo.badgeKey);
             if (!def) return null;
 
-            // Metric keys mapping
-            const metricMap: any = {
-                "MAX_BONUS": "maxBonus",
-                "BONUS_STREAK": "maxBonusStreak",
-                "PERFECT_TARGET_STREAK": "maxPerfectStreak",
-                "STEAL_COUNT": "stealCount"
+            // Calculate exact score for comparison
+            const getScore = (s: any) => {
+                if (def.metricType === "MAX_BONUS") return s.maxBonus || 0;
+                if (def.metricType === "BONUS_STREAK") return s.maxBonusStreak || 0;
+                if (def.metricType === "PERFECT_TARGET_STREAK") return s.maxPerfectStreak || 0;
+                if (def.metricType === "STEAL_COUNT") return s.stealCount || 0;
+                if (def.metricType === "MAX_SET") {
+                    if (def.exerciseScope === "PUSHUPS") return s.maxSetPushups || 0;
+                    if (def.exerciseScope === "PULLUPS") return s.maxSetPullups || 0;
+                    if (def.exerciseScope === "SQUATS") return s.maxSetSquats || 0;
+                    return s.maxSetAll || 0;
+                }
+                if (def.metricType === "SERIES_COUNT") {
+                    const exo = def.exerciseScope === "PUSHUPS" ? "PUSHUP" : def.exerciseScope === "PULLUPS" ? "PULLUP" : "SQUAT";
+                    return s.setsByTarget ? s.setsByTarget(exo, def.seriesTarget!) : 0;
+                }
+                return 0;
             };
-
-            let valKey = metricMap[def.metricType];
-            if (def.metricType === "MAX_SET") {
-                valKey = def.exerciseScope === "PUSHUPS" ? "maxSetPushups" : def.exerciseScope === "PULLUPS" ? "maxSetPullups" : def.exerciseScope === "SQUATS" ? "maxSetSquats" : "maxSetAll";
-            } else if (def.metricType === "SERIES_COUNT") {
-                // Approximate for danger list
-                valKey = "maxSetAll";
-            }
-
-            if (!valKey) return null;
 
             // Find best challenger (excluding current holder)
             const sortedChallengers = summaries
                 .filter(s => s.id !== bo.currentUserId)
-                .sort((a: any, b: any) => b[valKey] - a[valKey]);
+                .sort((a: any, b: any) => getScore(b) - getScore(a));
 
             const challenger = sortedChallengers[0] as any;
             if (!challenger) return null;
 
-            const challengerValue = challenger[valKey];
+            const challengerValue = getScore(challenger);
             const diff = bo.currentValue - challengerValue;
 
             // Show if diff is small (e.g., within 10% or absolute small range)
