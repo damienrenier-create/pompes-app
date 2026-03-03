@@ -6,6 +6,5 @@ export const SPECIAL_DAYS: Record<string, { label: string; emoji: string }> = {
     "2026-12-21": { label: "Solstice d'hiver", emoji: "❄️" },
     "2026-03-08": { label: "Saint Marvin", emoji: "🔥" },
     "2026-12-18": { label: "Saint Damien", emoji: "⚔️" },
-    "2026-04-01": { label: "1er avril", emoji: "🎭" },
-    "2026-12-31": { label: "31 décembre", emoji: "🎆" },
+    "2026-04-01": { label: "1er avril", emoji: "🎭" }
 };

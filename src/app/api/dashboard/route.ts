@@ -13,7 +13,7 @@ import {
 } from "@/lib/challenge";
 import { SPECIAL_DAYS } from "@/config/specialDays";
 
-import { initBadges } from "@/lib/badges";
+import { initBadges, BADGE_DEFINITIONS } from "@/lib/badges";
 
 export const dynamic = "force-dynamic";
 
@@ -187,7 +187,7 @@ export async function GET(req: Request) {
 
         // Special Days 2026 Logic
         const earnedSpecialDays: any[] = [];
-        const availableSpecialDays: any[] = [];
+        let availableSpecialDays: any[] = [];
         Object.entries(SPECIAL_DAYS).forEach(([date, info]) => {
             const winners = leaderboard.filter(u => {
                 const dayTotal = (u.sets || []).filter((s: any) => s.date === date).reduce((sum: number, s: any) => sum + s.reps, 0);
@@ -195,8 +195,11 @@ export async function GET(req: Request) {
             }).map(u => u.nickname);
 
             if (winners.length > 0) earnedSpecialDays.push({ date, ...info, winners });
-            else availableSpecialDays.push({ date, ...info });
+            else if (date >= today) availableSpecialDays.push({ date, ...info });
         });
+
+        // Limit to next 3 events
+        availableSpecialDays = availableSpecialDays.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
 
         // Cagnotte Rewards Suggestions
         const potEur = leaderboard.reduce((sum, u) => sum + u.finesDueEur + (u.potEventsEur || 0), 0);
@@ -252,11 +255,12 @@ export async function GET(req: Request) {
         const dangerList: any[] = [];
         badgeOwnerships.forEach((bo: any) => {
             if (!bo.currentUserId || bo.locked) return;
-            if (bo.badge?.type !== "COMPETITIVE") return;
+
+            const def = BADGE_DEFINITIONS.find(d => d.key === bo.badgeKey);
+            if (!def || def.type !== "COMPETITIVE") return;
 
             // Find #2. We can look at our 'leaderboard' data (which already has some aggregated stats)
             // or perform a specific search. For performance, let's use what we have.
-            const def = bo.badge;
             let challenger: any = null;
             let challengerValue = -1;
 
