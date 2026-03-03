@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import PantheonClient from "@/app/pantheon/PantheonClient";
 import { BADGE_DEFINITIONS, getUserSummaries } from "@/lib/badges";
 import { getRequiredRepsForDate } from "@/lib/challenge";
+import { calculateAllUsersXP } from "@/lib/xp";
 
 export const dynamic = "force-dynamic";
 
@@ -135,6 +136,8 @@ export default async function PantheonPage() {
         hour12: false
     }).format(new Date());
 
+    const xpScores = calculateAllUsersXP(allUsers, badgeOwnerships);
+
     return (
         <PantheonClient
             currentUser={allUsers.find((u: any) => u.id === userId)}
@@ -145,6 +148,7 @@ export default async function PantheonPage() {
             virtualizedData={virtualizedData}
             dangerList={dangerList as any}
             serverTime={serverTime}
+            xpScores={xpScores}
         />
     );
 }

@@ -48,6 +48,7 @@ interface PantheonClientProps {
     virtualizedData: any[];
     dangerList: any[];
     serverTime?: string;
+    xpScores?: any[];
 }
 
 export default function PantheonClient({
@@ -58,7 +59,8 @@ export default function PantheonClient({
     recentEvents,
     virtualizedData,
     dangerList,
-    serverTime
+    serverTime,
+    xpScores
 }: PantheonClientProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [filterType, setFilterType] = useState<string | null>(null);
@@ -518,6 +520,7 @@ export default function PantheonClient({
 
                     <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {allUsers.map((user, i) => {
+                            const userXP = xpScores?.find(x => x.id === user.id);
                             const userOwnerships = badgeOwnerships.filter(bo => bo.currentUserId === user.id && bo.badge?.type === 'COMPETITIVE');
                             const virtuals = virtualizedData.find(v => v.userId === user.id)?.virtualBadges || {};
                             const virtualScore = Object.values(virtuals).filter(Boolean).length;
@@ -530,11 +533,14 @@ export default function PantheonClient({
                                 >
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center font-black text-sm">
-                                                {user.nickname.charAt(0).toUpperCase()}
+                                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center font-black text-sm shrink-0">
+                                                {userXP ? userXP.emoji : user.nickname.charAt(0).toUpperCase()}
                                             </div>
                                             <div>
-                                                <h3 className="font-black text-white uppercase group-hover:text-indigo-400 transition-colors">{user.nickname}</h3>
+                                                <h3 className="font-black text-white uppercase group-hover:text-indigo-400 transition-colors">
+                                                    {userXP ? <span className="text-xs text-slate-400 font-bold mr-1.5" title={userXP.animal}>Lv.{userXP.level}</span> : null}
+                                                    {user.nickname}
+                                                </h3>
                                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{userOwnerships.length + virtualScore} Distinction(s)</p>
                                             </div>
                                         </div>

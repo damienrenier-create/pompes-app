@@ -12,6 +12,7 @@ interface DashboardData {
     setsSelected: { pushups: number[]; pullups: number[]; squats: number[] }
     totalsSelected: { pushups: number; pullups: number; squats: number; total: number }
     leaderboard: Array<{
+        id: string
         nickname: string
         completionRate: number
         streakCurrent: number
@@ -58,6 +59,14 @@ interface DashboardData {
     graphs: {
         myDaily: Array<{ date: string; pushups: number; pullups: number; squats: number; total: number }>
         myDaily365?: Array<{ date: string; pushups: number; pullups: number; squats: number; total: number }>
+    }
+    xp?: {
+        leaderboard: Array<{
+            id: string; totalXP: number; level: number; animal: string; emoji: string; belt: string; xpCurrentLvl: number; xpNextLvl: number; progress: number;
+        }>
+        currentUser?: {
+            id: string; totalXP: number; level: number; animal: string; emoji: string; belt: string; xpCurrentLvl: number; xpNextLvl: number; progress: number;
+        }
     }
 }
 
@@ -361,6 +370,34 @@ export default function ChallengeDashboard() {
                     </div>
                 </div>
 
+                {data?.xp && data?.xp.currentUser && (
+                    <div className="bg-slate-900 rounded-3xl p-5 shadow-xl border border-slate-800 relative overflow-hidden flex flex-col gap-3">
+                        <div className="flex items-center justify-between relative z-10">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-2xl shadow-inner border border-white/10 shrink-0">
+                                    {data.xp.currentUser.emoji}
+                                </div>
+                                <div>
+                                    <h3 className="text-white font-black text-lg uppercase tracking-tight leading-none">{data.xp.currentUser.animal}</h3>
+                                    <p className="text-indigo-400 text-[9px] font-bold uppercase tracking-widest leading-none mt-1">{data.xp.currentUser.belt}</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-white font-black text-xl tracking-tight">Lv. {data.xp.currentUser.level}</span>
+                            </div>
+                        </div>
+                        <div className="relative z-10 pt-1">
+                            <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1.5 px-0.5">
+                                <span>{data.xp.currentUser.totalXP.toLocaleString('fr-FR')} XP</span>
+                                <span>{data.xp.currentUser.xpNextLvl.toLocaleString('fr-FR')} XP</span>
+                            </div>
+                            <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                                <div className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-1000 ease-out" style={{ width: `${data.xp.currentUser.progress}%` }}></div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-gray-100 overflow-x-auto no-scrollbar">
                     <button onClick={() => setActiveTab('saisie')} className={`flex-1 min-w-[80px] py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'saisie' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Saisie</button>
                     <button onClick={() => setActiveTab('graphs')} className={`flex-1 min-w-[80px] py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-xl transition-all ${activeTab === 'graphs' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}>Graphiques</button>
@@ -579,9 +616,15 @@ export default function ChallengeDashboard() {
                                         <div className="flex items-center gap-3">
                                             <span className={`w-6 text-center font-black ${i < 3 ? 'text-blue-500' : 'text-gray-300'}`}>{i + 1}</span>
                                             <div>
-                                                <Link href={`/u/${encodeURIComponent(u.nickname || '')}`} className="font-black text-gray-900 text-sm leading-none hover:text-blue-600 hover:underline transition-color" title={`Visiter le profil de ${u.nickname}`}>
-                                                    {u.nickname || 'Anonyme'}
-                                                </Link>
+                                                <div className="flex items-center gap-1.5">
+                                                    {(() => {
+                                                        const userXP = data?.xp?.leaderboard.find((x: any) => x.id === u.id);
+                                                        return userXP ? <span className="text-xs font-black text-slate-400" title={userXP.animal}>[Lv.{userXP.level} {userXP.emoji}]</span> : null;
+                                                    })()}
+                                                    <Link href={`/u/${encodeURIComponent(u.nickname || '')}`} className="font-black text-gray-900 text-sm leading-none hover:text-blue-600 hover:underline transition-color" title={`Visiter le profil de ${u.nickname}`}>
+                                                        {u.nickname || 'Anonyme'}
+                                                    </Link>
+                                                </div>
                                                 <div className="flex items-center gap-1 mt-1 cursor-help" title={`Statut moyen des apports par rapport à la consigne du jour`}>
                                                     <span className="text-[10px]">{ind.emoji}</span>
                                                     <span className="text-[8px] font-black text-gray-400 uppercase tracking-tight">{ind.label}</span>

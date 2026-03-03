@@ -12,8 +12,8 @@ import {
     isLastDayOfMonth
 } from "@/lib/challenge";
 import { SPECIAL_DAYS } from "@/config/specialDays";
-
 import { initBadges, BADGE_DEFINITIONS } from "@/lib/badges";
+import { calculateAllUsersXP } from "@/lib/xp";
 
 export const dynamic = "force-dynamic";
 
@@ -272,6 +272,10 @@ export async function GET(req: Request) {
             }
         });
 
+        // Calcul des XP (Leaderboard XP V3)
+        const xpScores = calculateAllUsersXP(allUsers, badgeOwnerships);
+        const currentUserXP = xpScores.find(x => x.id === userId);
+
         const recentEvents = (await (prisma as any).badgeEvent.findMany({
             take: 30,
             orderBy: { createdAt: "desc" },
@@ -359,6 +363,10 @@ export async function GET(req: Request) {
             },
             leaderboard: leaderboard.map(({ sets, ...rest }) => rest),
             records: recordsData,
+            xp: {
+                leaderboard: xpScores,
+                currentUser: currentUserXP
+            },
             badges: {
                 earned: { trophies: earnedTrophies, specialDays: earnedSpecialDays },
                 available: { trophies: availableTrophies, specialDays: availableSpecialDays },
