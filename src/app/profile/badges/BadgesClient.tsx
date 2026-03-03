@@ -78,7 +78,7 @@ export default function BadgesClient({
                         <div className="flex flex-col text-right">
                             <span className="text-slate-500">Détenteur</span>
                             <Link
-                                href={`/u/${ownership.currentUser.nickname}`}
+                                href={`/u/${encodeURIComponent(ownership.currentUser.nickname)}`}
                                 onClick={(e) => e.stopPropagation()}
                                 className="text-indigo-400 font-bold hover:underline"
                             >
@@ -128,7 +128,7 @@ export default function BadgesClient({
                         <div key={user.id} className="space-y-4">
                             <h2 className="text-xl font-black text-white flex items-center gap-2">
                                 <span className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm">👤</span>
-                                <Link href={`/u/${user.nickname}`} className="hover:text-indigo-400 transition-colors">
+                                <Link href={`/u/${encodeURIComponent(user.nickname)}`} className="hover:text-indigo-400 transition-colors">
                                     Exploits de <span className="text-indigo-500">{user.nickname}</span>
                                 </Link>
                             </h2>

@@ -129,7 +129,7 @@ export default async function LeaderboardPage({
                                 </td>
                                 <td className="px-6 py-6">
                                     <Link
-                                        href={`/u/${entry.nickname}`}
+                                        href={`/u/${encodeURIComponent(entry.nickname)}`}
                                         className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors"
                                     >
                                         {entry.nickname}

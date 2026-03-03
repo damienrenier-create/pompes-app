@@ -19,6 +19,8 @@ import {
     CheckCircle2,
     CircleDashed
 } from "lucide-react";
+import { SPECIAL_DAYS } from "@/config/specialDays";
+
 // Replace date-fns with native Intl
 const formatTime = (dateStr: any) => {
     if (!dateStr) return "";
@@ -71,17 +73,21 @@ export default function PantheonClient({
     // Current User's Virtual Status
     const userVirtualData = virtualizedData.find(v => v.userId === currentUser?.id);
 
-    // Static Events Data
-    const eventDefinitions = [
-        { id: 'nouvel_an', date: '01/01', name: 'Nouvel An', emoji: '🎆', description: 'Célébrez le premier jour de l\'année avec une série d\'enfer !' },
-        { id: 'st_patrick', date: '17/03', name: 'Saint Patrick', emoji: '🍀', description: 'Validez votre quota complet le jour de la St Patrick pour gagner le trèfle d\'or.' },
-        { id: 'poisson_avril', date: '01/04', name: 'Poisson d\'avril', emoji: '🎭', description: 'Ne vous faites pas avoir ! Une série validée ce jour-là débloque la distinction.' },
-        { id: 'dday', date: '06/06', name: 'Le Débarquement', emoji: '🎖️', description: 'Honneur aux braves. Validez votre quota complet pour obtenir ce badge historique.' },
-        { id: 'fete_nationale', date: '21/07', name: 'Fête Nationale (BE)', emoji: '🇧🇪', description: 'Un jour de fête, un jour de pompes.' },
-        { id: 'liege_assomption', date: '15/08', name: 'Fête à Liège', emoji: '☀️', description: 'Profitez de la chaleur du 15 août pour briller sur l\'application.' },
-        { id: 'rentree', date: '01/09', name: 'La Rentrée', emoji: '🏫', description: 'Tout le monde retourne au boulot, vous retournez à la salle.' },
-        { id: 'halloween', date: '31/10', name: 'Halloween', emoji: '🎃', description: 'Frissonnez de plaisir en validant vos reps dans le noir.' },
-    ];
+    // Events Data from config
+    const today = new Date().toISOString().split("T")[0];
+    const eventDefinitions = useMemo(() => {
+        return Object.entries(SPECIAL_DAYS)
+            .filter(([date]) => date >= today)
+            .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+            .slice(0, 3)
+            .map(([date, info]) => ({
+                id: date,
+                date: new Date(date).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }),
+                name: info.label,
+                emoji: info.emoji,
+                description: `Série(s) obligatoire(s) lors du ${info.label}`
+            }));
+    }, []);
 
     return (
         <>
@@ -426,7 +432,7 @@ export default function PantheonClient({
                             return (
                                 <Link
                                     key={i}
-                                    href={`/u/${user.nickname}`}
+                                    href={`/u/${encodeURIComponent(user.nickname)}`}
                                     className="bg-white/5 border border-white/10 backdrop-blur-md p-6 rounded-[2rem] hover:bg-white/10 hover:border-white/20 transition-all group"
                                 >
                                     <div className="flex items-start justify-between mb-4">

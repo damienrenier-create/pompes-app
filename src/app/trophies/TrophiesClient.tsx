@@ -163,15 +163,15 @@ export default function TrophiesClient({
                                 <p className="text-[11px] font-bold text-white leading-relaxed">
                                     {ev.eventType === 'STEAL' ? (
                                         <>
-                                            <Link href={`/u/${ev.toUser.nickname}`} className="text-orange-400 hover:underline">{ev.toUser.nickname}</Link> a volé <span className="text-blue-400">[{ev.badge.name}]</span> à <Link href={`/u/${ev.fromUser?.nickname}`} className="hover:underline">{ev.fromUser?.nickname}</Link>
+                                            <Link href={`/u/${encodeURIComponent(ev.toUser.nickname)}`} className="text-orange-400 hover:underline">{ev.toUser.nickname}</Link> a volé <span className="text-blue-400">[{ev.badge.name}]</span> à <Link href={`/u/${encodeURIComponent(ev.fromUser?.nickname || '')}`} className="hover:underline">{ev.fromUser?.nickname}</Link>
                                         </>
                                     ) : ev.eventType === 'CLAIM' ? (
                                         <>
-                                            <Link href={`/u/${ev.toUser.nickname}`} className="text-green-400 hover:underline">{ev.toUser.nickname}</Link> a obtenu <span className="text-blue-400">[{ev.badge.name}]</span>
+                                            <Link href={`/u/${encodeURIComponent(ev.toUser.nickname)}`} className="text-green-400 hover:underline">{ev.toUser.nickname}</Link> a obtenu <span className="text-blue-400">[{ev.badge.name}]</span>
                                         </>
                                     ) : (
                                         <>
-                                            <Link href={`/u/${ev.toUser.nickname}`} className="text-yellow-400 hover:underline">{ev.toUser.nickname}</Link> a débloqué <span className="text-blue-400">[{ev.badge.name}]</span>
+                                            <Link href={`/u/${encodeURIComponent(ev.toUser.nickname)}`} className="text-yellow-400 hover:underline">{ev.toUser.nickname}</Link> a débloqué <span className="text-blue-400">[{ev.badge.name}]</span>
                                         </>
                                     )}
                                 </p>
@@ -195,7 +195,7 @@ export default function TrophiesClient({
                                     <div>
                                         <p className="text-[10px] font-black text-white uppercase">{d.badgeName}</p>
                                         <p className="text-[8px] font-bold text-slate-500 italic">
-                                            Détenteur: <Link href={`/u/${d.holder}`} className="text-white hover:underline">{d.holder}</Link> ({d.currentValue})
+                                            Détenteur: <Link href={`/u/${encodeURIComponent(d.holder || '')}`} className="text-white hover:underline">{d.holder}</Link> ({d.currentValue})
                                         </p>
                                     </div>
                                 </div>
@@ -259,7 +259,7 @@ export default function TrophiesClient({
                                     <div className="pt-3 border-t border-white/5">
                                         <p className="text-[9px] font-bold text-slate-500 uppercase mb-1 italic">Détenteur actuel:</p>
                                         {ownership?.currentUser ? (
-                                            <Link href={`/u/${ownership.currentUser.nickname}`} onClick={(e) => e.stopPropagation()} className="text-[11px] font-black text-indigo-400 hover:underline">
+                                            <Link href={`/u/${encodeURIComponent(ownership.currentUser.nickname)}`} onClick={(e) => e.stopPropagation()} className="text-[11px] font-black text-indigo-400 hover:underline">
                                                 👑 {ownership.currentUser.nickname} ({ownership.currentValue})
                                             </Link>
                                         ) : (
