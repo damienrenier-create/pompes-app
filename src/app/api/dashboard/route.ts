@@ -252,12 +252,13 @@ export async function GET(req: Request) {
         const dangerList: any[] = [];
         badgeOwnerships.forEach((bo: any) => {
             if (!bo.currentUserId || bo.locked) return;
+            if (bo.badge?.type !== "COMPETITIVE") return;
 
             // Find #2. We can look at our 'leaderboard' data (which already has some aggregated stats)
             // or perform a specific search. For performance, let's use what we have.
             const def = bo.badge;
             let challenger: any = null;
-            let challengerValue = 0;
+            let challengerValue = -1;
 
             leaderboard.forEach(u => {
                 if (u.id === bo.currentUserId) return;

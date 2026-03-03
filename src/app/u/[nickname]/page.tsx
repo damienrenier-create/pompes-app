@@ -17,9 +17,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     }
 
     const { nickname } = await params;
+    const decodedNickname = decodeURIComponent(nickname);
 
     const user = await prisma.user.findFirst({
-        where: { nickname: { equals: nickname, mode: "insensitive" } },
+        where: { nickname: { equals: decodedNickname, mode: "insensitive" } },
         include: {
             badges: {
                 include: {
