@@ -23,6 +23,7 @@ model User {
   eventsFrom BadgeEvent[] @relation("EventFrom")
   eventsTo   BadgeEvent[] @relation("EventTo")
   potEvents PotEvent[]
+  wallMessages WallMessage[]
   medicalCertificates MedicalCertificate[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -131,3 +132,12 @@ model BadgeEvent {
   createdAt     DateTime @default(now())
 }
 
+model WallMessage {
+  id        String   @id @default(cuid())
+  content   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

@@ -1,53 +1,42 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/prisma";
 
 export async function GET() {
-    const endpoint = process.env.WALL_ENDPOINT_URL;
-    if (!endpoint) {
-        return NextResponse.json({ error: "WALL_ENDPOINT_URL is not configured" }, { status: 500 });
-    }
-
     try {
-        const response = await fetch(endpoint, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
+        const messages = await (prisma as any).wallMessage.findMany({
+            orderBy: {
+                createdAt: 'desc',
             },
-            // Avoid aggressive caching for the feed
-            cache: "no-store"
+            take: 100, // On limite aux 100 derniers messages pour la perf
+            include: {
+                user: {
+                    select: {
+                        nickname: true
+                    }
+                }
+            }
         });
 
-        if (!response.ok) {
-            const txt = await response.text();
-            throw new Error(`Statut ${response.status}: ${txt.substring(0, 100)}...`);
-        }
+        const formattedMessages = messages.map((m: any) => ({
+            id: m.id,
+            nickname: m.user.nickname,
+            message: m.content,
+            createdAt: m.createdAt.toISOString()
+        }));
 
-        const txt = await response.text();
-        try {
-            const data = JSON.parse(txt);
-            return NextResponse.json(data);
-        } catch (e) {
-            throw new Error(`Le Google Script ne renvoie pas du JSON valide (L'accès est-il bien sur "Anyone" ?). Reçu: ${txt.substring(0, 100)}...`);
-        }
+        return NextResponse.json({ messages: formattedMessages });
     } catch (error: any) {
         console.error("Wall GET error:", error);
-        return NextResponse.json({ error: error.message || "Impossible de joindre le Google Script" }, { status: 500 });
+        return NextResponse.json({ error: "Impossible de charger le mur" }, { status: 500 });
     }
 }
 
 export async function POST(req: Request) {
-    // Auth is mandatory
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || !session.user.name) {
+    if (!session || !session.user || !session.user.id) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const endpoint = process.env.WALL_ENDPOINT_URL;
-    const writeToken = process.env.WALL_WRITE_TOKEN;
-
-    if (!endpoint || !writeToken) {
-        return NextResponse.json({ error: "Server wall configuration is missing" }, { status: 500 });
     }
 
     try {
@@ -62,38 +51,32 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Message exceeds 240 characters" }, { status: 400 });
         }
 
-        const payload = {
-            token: writeToken,
-            nickname: session.user.name,
-            message: message.trim(),
-            createdAt: new Date().toISOString()
-        };
-
-        const response = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
+        const newMessage = await (prisma as any).wallMessage.create({
+            data: {
+                content: message.trim(),
+                userId: session.user.id
             },
-            body: JSON.stringify(payload)
+            include: {
+                user: {
+                    select: {
+                        nickname: true
+                    }
+                }
+            }
         });
 
-        if (!response.ok) {
-            const txt = await response.text();
-            throw new Error(`Statut ${response.status}: ${txt.substring(0, 100)}...`);
-        }
-
-        const txt = await response.text();
-        try {
-            const data = JSON.parse(txt);
-            if (data.status !== "success") {
-                return NextResponse.json({ error: data.message || `Refus du script Google: ${txt.substring(0, 50)}` }, { status: 400 });
+        // Enregistrer l'événement du premier message si c'est pertinent un jour (ex: badge)
+        return NextResponse.json({
+            success: true,
+            message: {
+                id: newMessage.id,
+                nickname: newMessage.user.nickname,
+                message: newMessage.content,
+                createdAt: newMessage.createdAt.toISOString()
             }
-            return NextResponse.json({ success: true, data });
-        } catch (e) {
-            throw new Error(`Le Google Script ne renvoie pas de JSON valide. Action bloquée. (Accès anonyme requis ?). Reçu: ${txt.substring(0, 100)}...`);
-        }
+        });
     } catch (error: any) {
         console.error("Wall POST error:", error);
-        return NextResponse.json({ error: error.message || "Failed to post message" }, { status: 500 });
+        return NextResponse.json({ error: "Impossible de publier sur le mur" }, { status: 500 });
     }
 }
