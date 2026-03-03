@@ -93,6 +93,7 @@ export const BADGE_DEFINITIONS = [
     { key: "high_noon", name: "Midi Pile", emoji: "🕛", description: "Série à 12:00 pile", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_EXACT", threshold: 1, type: "MILESTONE" },
 
     // Seasonal / Events
+    { key: "level_up", name: "Montée de Niveau", emoji: "⭐", description: "Est passé au niveau supérieur", isUnique: false, isTransferable: false, metricType: "LEVEL_UP", threshold: 0, type: "EVENT" },
     { key: "st_patrick", name: "La Saint-Patrick", emoji: "🍀", description: "S'être entraîné le 17 mars", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD", threshold: 17, type: "EVENT" },
     { key: "st_patrick_gold", name: "Saint-Patrick (Or)", emoji: "🏵️", description: "Avoir validé son objectif complet le 17 mars", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD_GOLD", threshold: 17, type: "EVENT" },
     { key: "dday_hero", name: "Le Débarquement", emoji: "🎖️", description: "Avoir fait au moins une série le 06 juin", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD", threshold: 6, type: "EVENT" },

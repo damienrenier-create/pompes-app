@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { calculateAllUsersXP } from "@/lib/xp";
 
 export default async function LeaderboardPage({
     searchParams,
@@ -15,41 +16,65 @@ export default async function LeaderboardPage({
         redirect("/login");
     }
 
-    const { exercise = "ALL" } = await searchParams;
+    const { exercise = "XP" } = await searchParams;
     const selectedExercise = (exercise as string).toUpperCase();
 
-    // Query 1: Group by userId and sum reps
-    const logs = await prisma.exerciseSet.groupBy({
-        by: ["userId"],
-        where: selectedExercise === "ALL" ? {} : {
-            exercise: selectedExercise,
-        },
-        _sum: {
-            reps: true,
-        },
-    });
+    let leaderboard: any[] = [];
+    let totalGroupReps = 0;
 
-    // Query 2: Fetch all relevant users to get nicknames
-    const users = await prisma.user.findMany({
-        where: { nickname: { not: 'modo' } },
-        select: {
-            id: true,
-            nickname: true,
-        },
-    });
+    if (selectedExercise === "XP") {
+        const allUsers = await prisma.user.findMany({
+            where: { nickname: { not: 'modo' } },
+            include: { sets: true }
+        });
+        const badgeOwnerships = await (prisma as any).badgeOwnership.findMany();
+        const xpScores = calculateAllUsersXP(allUsers, badgeOwnerships);
 
-    const userMap = new Map(users.map((u) => [u.id, u.nickname]));
+        totalGroupReps = xpScores.reduce((sum, entry) => sum + entry.totalXP, 0);
+        leaderboard = xpScores.map(x => ({
+            userId: x.id,
+            nickname: x.nickname || "Inconnu",
+            totalReps: x.totalXP,
+            level: x.level,
+            animal: x.animal,
+            emoji: x.emoji,
+            progress: x.progress,
+            xpNextLvl: x.xpNextLvl
+        })).sort((a: any, b: any) => b.totalReps - a.totalReps);
+    } else {
+        // Query 1: Group by userId and sum reps
+        const logs = await prisma.exerciseSet.groupBy({
+            by: ["userId"],
+            where: selectedExercise === "ALL" ? {} : {
+                exercise: selectedExercise,
+            },
+            _sum: {
+                reps: true,
+            },
+        });
 
-    // Combine data and sort by total reps desc
-    const leaderboard = logs
-        .map((log) => ({
-            userId: log.userId,
-            nickname: userMap.get(log.userId) || "Inconnu",
-            totalReps: log._sum.reps || 0,
-        }))
-        .sort((a, b) => b.totalReps - a.totalReps);
+        // Query 2: Fetch all relevant users to get nicknames
+        const users = await prisma.user.findMany({
+            where: { nickname: { not: 'modo' } },
+            select: {
+                id: true,
+                nickname: true,
+            },
+        });
 
-    const totalGroupReps = leaderboard.reduce((sum, entry) => sum + entry.totalReps, 0);
+        const userMap = new Map(users.map((u) => [u.id, u.nickname]));
+
+        // Combine data and sort by total reps desc
+        leaderboard = logs
+            .map((log) => ({
+                userId: log.userId,
+                nickname: userMap.get(log.userId) || "Inconnu",
+                totalReps: log._sum.reps || 0,
+            }))
+            .sort((a, b) => b.totalReps - a.totalReps);
+
+        totalGroupReps = leaderboard.reduce((sum, entry) => sum + entry.totalReps, 0);
+    }
 
     return (
         <div className="max-w-4xl mx-auto p-4 space-y-12 pb-20">
@@ -59,7 +84,7 @@ export default async function LeaderboardPage({
                 </h1>
 
                 <div className="flex justify-center flex-wrap gap-2 mt-4">
-                    {(['ALL', 'PUSHUP', 'PULLUP', 'SQUAT'] as const).map(ex => (
+                    {(['XP', 'ALL', 'PUSHUP', 'PULLUP', 'SQUAT'] as const).map(ex => (
                         <Link
                             key={ex}
                             href={`/leaderboard?exercise=${ex}`}
@@ -128,17 +153,37 @@ export default async function LeaderboardPage({
                                     </div>
                                 </td>
                                 <td className="px-6 py-6">
-                                    <Link
-                                        href={`/u/${encodeURIComponent(entry.nickname)}`}
-                                        className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors"
-                                    >
-                                        {entry.nickname}
-                                    </Link>
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2">
+                                            {selectedExercise === 'XP' && entry.level && (
+                                                <span className="text-xs font-black text-slate-400" title={entry.animal}>
+                                                    [Lv.{entry.level} {entry.emoji}]
+                                                </span>
+                                            )}
+                                            <Link
+                                                href={`/u/${encodeURIComponent(entry.nickname)}`}
+                                                className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors"
+                                            >
+                                                {entry.nickname}
+                                            </Link>
+                                        </div>
+                                        {selectedExercise === 'XP' && entry.xpNextLvl && (
+                                            <div className="mt-2 w-full max-w-[200px]">
+                                                <div className="flex justify-between text-[9px] font-bold text-slate-500 uppercase mb-1">
+                                                    <span>Niveau Suivant</span>
+                                                    <span>Lv.{entry.level + 1} ({entry.xpNextLvl.toLocaleString('fr-FR')} XP)</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                                                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${entry.progress}%` }} />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </td>
                                 <td className="px-6 py-6 text-right">
                                     <div className="flex flex-col items-end">
-                                        <span className="text-2xl font-black text-white font-mono">{entry.totalReps.toLocaleString()}</span>
-                                        <span className="text-[10px] font-bold text-slate-500 tracking-tighter uppercase">Volume {selectedExercise}</span>
+                                        <span className="text-2xl font-black text-white font-mono">{entry.totalReps.toLocaleString('fr-FR')}</span>
+                                        <span className="text-[10px] font-bold text-slate-500 tracking-tighter uppercase">{selectedExercise === 'XP' ? 'Points XP' : `Volume ${selectedExercise}`}</span>
                                     </div>
                                 </td>
                             </tr>

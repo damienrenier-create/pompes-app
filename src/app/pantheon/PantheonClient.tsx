@@ -206,14 +206,24 @@ export default function PantheonClient({
                                     else if (count === 4) emoji = "🔥🔥";
                                     else if (count >= 5) emoji = "❤️";
 
+                                    const isLevelUp = event.eventType === "LEVEL_UP";
+                                    let metaDataObj: any = null;
+                                    try {
+                                        if (event.metadata) metaDataObj = JSON.parse(event.metadata);
+                                    } catch (e) { }
+
                                     return (
-                                        <div key={i} className="flex gap-4 p-4 rounded-2xl border border-slate-50 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all group">
-                                            <div className="text-2xl mt-0.5 group-hover:scale-110 transition-transform">{event.badge?.emoji}</div>
+                                        <div key={i} className={`flex gap-4 p-4 rounded-2xl border bg-slate-50/50 hover:bg-white hover:shadow-md transition-all group ${isLevelUp ? 'border-indigo-100' : 'border-slate-50'}`}>
+                                            <div className="text-2xl mt-0.5 group-hover:scale-110 transition-transform">
+                                                {isLevelUp ? '⭐' : event.badge?.emoji}
+                                            </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center justify-between mb-1">
                                                     <p className="text-xs font-black text-slate-800 uppercase tracking-tight">
                                                         {event.eventType === 'STEAL' ? (
                                                             <React.Fragment><span className="text-orange-600">{event.toUser?.nickname}</span> a <span className="underline decoration-orange-200">volé</span></React.Fragment>
+                                                        ) : isLevelUp ? (
+                                                            <React.Fragment><span className="text-indigo-600">{event.toUser?.nickname}</span></React.Fragment>
                                                         ) : <span className="text-green-600">{event.toUser?.nickname}</span>}
                                                     </p>
                                                     <span className="text-[9px] font-bold text-slate-300">{formatTime(event.createdAt)}</span>
@@ -221,6 +231,11 @@ export default function PantheonClient({
                                                 <p className="text-sm text-slate-600 font-medium">
                                                     {event.eventType === 'STEAL' ? (
                                                         <React.Fragment>Le badge <span className="font-bold text-slate-900">[{event.badge?.name}]</span> à {event.fromUser?.nickname}</React.Fragment>
+                                                    ) : isLevelUp ? (
+                                                        <React.Fragment>
+                                                            A atteint le Niveau <span className="font-black text-indigo-600">{event.newValue}</span>
+                                                            {metaDataObj?.animal && <span className="text-xs font-bold text-slate-500 ml-1">[{metaDataObj.animal} {metaDataObj.emoji}]</span>}
+                                                        </React.Fragment>
                                                     ) : (
                                                         <React.Fragment>A débloqué la distinction <span className="font-bold text-slate-900">[{event.badge?.name}]</span></React.Fragment>
                                                     )}
@@ -541,7 +556,17 @@ export default function PantheonClient({
                                                     {userXP ? <span className="text-xs text-slate-400 font-bold mr-1.5" title={userXP.animal}>Lv.{userXP.level}</span> : null}
                                                     {user.nickname}
                                                 </h3>
-                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{userOwnerships.length + virtualScore} Distinction(s)</p>
+                                                <div className="flex items-center gap-2 mt-0.5 mb-1.5">
+                                                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{userOwnerships.length + virtualScore} Titre(s)</p>
+                                                    {userXP && <span className="text-[8px] font-black text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded uppercase"> {userXP.totalXP.toLocaleString('fr-FR')} XP</span>}
+                                                </div>
+                                                {userXP && (
+                                                    <div className="w-full max-w-[120px]" title={`Prochain niveau : Lv.${userXP.level + 1}`}>
+                                                        <div className="h-1 w-full bg-slate-800/50 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${userXP.progress}%` }} />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
