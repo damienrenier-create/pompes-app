@@ -270,6 +270,37 @@ export default function ChallengeDashboard() {
         }
     }
 
+    const toggleLike = async (eventId: string) => {
+        const currentUserId = (session?.user as any)?.id;
+        if (!currentUserId) {
+            showToast("Connectez-vous pour réagir", "error");
+            return;
+        }
+
+        setData(prev => {
+            const newData = { ...prev };
+            const evIndex = newData.badges.competitive.events.findIndex(e => e.id === eventId);
+            if (evIndex >= 0) {
+                const ev = newData.badges.competitive.events[evIndex];
+                const likes = ev.likes || [];
+                const hasLiked = likes.some((l: any) => l.userId === currentUserId);
+
+                if (hasLiked) {
+                    newData.badges.competitive.events[evIndex].likes = likes.filter((l: any) => l.userId !== currentUserId);
+                } else {
+                    newData.badges.competitive.events[evIndex].likes = [...likes, { userId: currentUserId }];
+                }
+            }
+            return newData;
+        });
+
+        try {
+            await fetch(`/api/badges/events/${eventId}/like`, { method: "POST" });
+        } catch (e) {
+            showToast("Erreur lors du like", "error");
+        }
+    }
+
     if (loading && !data?.todayISO) return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -643,12 +674,36 @@ export default function ChallengeDashboard() {
                                                 </p>
                                             </div>
                                         </div>
-                                        {ev.newValue > 0 && (
-                                            <div className="text-right sm:text-center shrink-0">
-                                                <p className="font-black text-white text-lg">{ev.newValue}</p>
-                                                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mt-0.5">Record</p>
-                                            </div>
-                                        )}
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
+                                            {ev.newValue > 0 && (
+                                                <div className="text-right sm:text-center shrink-0 border-r sm:border-r-0 sm:border-l border-white/10 pr-3 sm:pr-0 sm:pl-3">
+                                                    <p className="font-black text-white text-lg leading-none">{ev.newValue}</p>
+                                                    <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mt-1">Record</p>
+                                                </div>
+                                            )}
+                                            {(() => {
+                                                const currentUserId = (session?.user as any)?.id;
+                                                const likes = ev.likes || [];
+                                                const count = likes.length;
+                                                const hasLiked = currentUserId && likes.some((l: any) => l.userId === currentUserId);
+
+                                                let emoji = "👍";
+                                                if (count === 2) emoji = "👍👍";
+                                                else if (count === 3) emoji = "🔥";
+                                                else if (count === 4) emoji = "🔥🔥";
+                                                else if (count >= 5) emoji = "❤️";
+
+                                                return (
+                                                    <button
+                                                        onClick={() => toggleLike(ev.id)}
+                                                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-black text-sm shrink-0 shadow-sm ${hasLiked ? 'bg-indigo-500/20 border border-indigo-500/50 text-indigo-200' : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'}`}
+                                                    >
+                                                        <span className={`transition-all ${count === 0 ? 'opacity-40 grayscale' : 'scale-110'}`}>{emoji}</span>
+                                                        {count > 0 && <span className="text-xs">{count}</span>}
+                                                    </button>
+                                                );
+                                            })()}
+                                        </div>
                                     </div>
                                 ))
                             ) : (

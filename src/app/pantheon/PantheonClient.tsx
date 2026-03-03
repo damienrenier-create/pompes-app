@@ -62,7 +62,38 @@ export default function PantheonClient({
     const [filterType, setFilterType] = useState<string | null>(null);
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [localEvents, setLocalEvents] = useState(recentEvents);
     const router = useRouter();
+
+    React.useEffect(() => {
+        setLocalEvents(recentEvents);
+    }, [recentEvents]);
+
+    const toggleLike = async (eventId: string, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const currentUserId = currentUser?.id;
+        if (!currentUserId) return;
+
+        setLocalEvents(prev => prev.map(ev => {
+            if (ev.id === eventId) {
+                const likes = ev.likes || [];
+                const hasLiked = likes.some((l: any) => l.userId === currentUserId);
+                return {
+                    ...ev,
+                    likes: hasLiked ? likes.filter((l: any) => l.userId !== currentUserId) : [...likes, { userId: currentUserId }]
+                };
+            }
+            return ev;
+        }));
+
+        try {
+            await fetch(`/api/badges/events/${eventId}/like`, { method: "POST" });
+        } catch (error) {
+            // Silencing error for optimistic UI
+        }
+    };
 
     const handleRefresh = () => {
         setIsRefreshing(true);
@@ -159,28 +190,51 @@ export default function PantheonClient({
                             </div>
 
                             <div className="space-y-4 flex-1 overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
-                                {recentEvents.length > 0 ? recentEvents.map((event: any, i: number) => (
-                                    <div key={i} className="flex gap-4 p-4 rounded-2xl border border-slate-50 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all group">
-                                        <div className="text-2xl mt-0.5 group-hover:scale-110 transition-transform">{event.badge?.emoji}</div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <p className="text-xs font-black text-slate-800 uppercase tracking-tight">
+                                {localEvents.length > 0 ? localEvents.map((event: any, i: number) => {
+                                    const currentUserId = currentUser?.id;
+                                    const likes = event.likes || [];
+                                    const count = likes.length;
+                                    const hasLiked = currentUserId && likes.some((l: any) => l.userId === currentUserId);
+
+                                    let emoji = "👍";
+                                    if (count === 2) emoji = "👍👍";
+                                    else if (count === 3) emoji = "🔥";
+                                    else if (count === 4) emoji = "🔥🔥";
+                                    else if (count >= 5) emoji = "❤️";
+
+                                    return (
+                                        <div key={i} className="flex gap-4 p-4 rounded-2xl border border-slate-50 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all group">
+                                            <div className="text-2xl mt-0.5 group-hover:scale-110 transition-transform">{event.badge?.emoji}</div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <p className="text-xs font-black text-slate-800 uppercase tracking-tight">
+                                                        {event.eventType === 'STEAL' ? (
+                                                            <React.Fragment><span className="text-orange-600">{event.toUser?.nickname}</span> a <span className="underline decoration-orange-200">volé</span></React.Fragment>
+                                                        ) : <span className="text-green-600">{event.toUser?.nickname}</span>}
+                                                    </p>
+                                                    <span className="text-[9px] font-bold text-slate-300">{formatTime(event.createdAt)}</span>
+                                                </div>
+                                                <p className="text-sm text-slate-600 font-medium">
                                                     {event.eventType === 'STEAL' ? (
-                                                        <React.Fragment><span className="text-orange-600">{event.toUser?.nickname}</span> a <span className="underline decoration-orange-200">volé</span></React.Fragment>
-                                                    ) : <span className="text-green-600">{event.toUser?.nickname}</span>}
+                                                        <React.Fragment>Le badge <span className="font-bold text-slate-900">[{event.badge?.name}]</span> à {event.fromUser?.nickname}</React.Fragment>
+                                                    ) : (
+                                                        <React.Fragment>A débloqué la distinction <span className="font-bold text-slate-900">[{event.badge?.name}]</span></React.Fragment>
+                                                    )}
                                                 </p>
-                                                <span className="text-[9px] font-bold text-slate-300">{formatTime(event.createdAt)}</span>
                                             </div>
-                                            <p className="text-sm text-slate-600 font-medium">
-                                                {event.eventType === 'STEAL' ? (
-                                                    <React.Fragment>Le badge <span className="font-bold text-slate-900">[{event.badge?.name}]</span> à {event.fromUser?.nickname}</React.Fragment>
-                                                ) : (
-                                                    <React.Fragment>A débloqué la distinction <span className="font-bold text-slate-900">[{event.badge?.name}]</span></React.Fragment>
-                                                )}
-                                            </p>
+                                            <div className="flex items-center justify-center shrink-0 border-l border-slate-100 pl-4 ml-2">
+                                                <button
+                                                    onClick={(e) => toggleLike(event.id, e)}
+                                                    className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-black text-sm shadow-sm ${hasLiked ? 'bg-indigo-50 border border-indigo-200 text-indigo-500' : 'bg-white border border-slate-200 text-slate-400 hover:bg-slate-50'}`}
+                                                >
+                                                    <span className={`transition-all ${count === 0 ? 'opacity-40 grayscale' : 'scale-110'}`}>{emoji}</span>
+                                                    {count > 0 && <span className="text-xs">{count}</span>}
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                )) : (
+                                    );
+                                }) : (
+
                                     <p className="text-slate-400 text-center py-10 font-medium italic">Aucun mouvement récent...</p>
                                 )}
                             </div>

@@ -42,6 +42,7 @@ export default async function PantheonPage() {
                 badge: true,
                 fromUser: true,
                 toUser: true,
+                likes: { select: { userId: true } },
             },
         }),
         (prisma as any).badgeDefinition.findMany(),

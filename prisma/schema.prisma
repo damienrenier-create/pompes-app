@@ -22,6 +22,7 @@ model User {
   badges    BadgeOwnership[]
   eventsFrom BadgeEvent[] @relation("EventFrom")
   eventsTo   BadgeEvent[] @relation("EventTo")
+  eventLikes BadgeEventLike[]
   potEvents PotEvent[]
   wallMessages WallMessage[]
   medicalCertificates MedicalCertificate[]
@@ -129,7 +130,19 @@ model BadgeEvent {
   previousValue Float?
   newValue      Float?
   metadata      String?  // JSON string for additional info
+  likes         BadgeEventLike[]
   createdAt     DateTime @default(now())
+}
+
+model BadgeEventLike {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     BadgeEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([eventId, userId])
 }
 
 model WallMessage {

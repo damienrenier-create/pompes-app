@@ -247,7 +247,8 @@ export async function GET(req: Request) {
             include: {
                 badge: true,
                 fromUser: { select: { nickname: true } },
-                toUser: { select: { nickname: true } }
+                toUser: { select: { nickname: true } },
+                likes: { select: { userId: true } }
             }
         })) || [];
 
