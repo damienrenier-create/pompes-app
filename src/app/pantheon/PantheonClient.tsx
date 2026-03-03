@@ -47,6 +47,7 @@ interface PantheonClientProps {
     recentEvents: any[];
     virtualizedData: any[];
     dangerList: any[];
+    serverTime?: string;
 }
 
 export default function PantheonClient({
@@ -56,7 +57,8 @@ export default function PantheonClient({
     badgeOwnerships,
     recentEvents,
     virtualizedData,
-    dangerList
+    dangerList,
+    serverTime
 }: PantheonClientProps) {
     const [searchTerm, setSearchTerm] = useState("");
     const [filterType, setFilterType] = useState<string | null>(null);
@@ -252,6 +254,7 @@ export default function PantheonClient({
                                         </div>
                                         <h2 className="text-lg font-black uppercase tracking-tight">Menaces de Vol</h2>
                                     </div>
+                                    {serverTime && <span className="text-[10px] font-bold text-slate-400 mt-1 block tracking-widest uppercase">Snapshot : {serverTime}</span>}
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

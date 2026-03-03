@@ -24,9 +24,9 @@ interface DashboardData {
     }>
     records: Record<string, {
         badge: string
-        pushups: { winner: string; maxReps: number }
-        pullups: { winner: string; maxReps: number }
-        squats: { winner: string; maxReps: number }
+        pushups: { winner: string; maxReps: number; top3Sets?: any[]; top3Volume?: any[] }
+        pullups: { winner: string; maxReps: number; top3Sets?: any[]; top3Volume?: any[] }
+        squats: { winner: string; maxReps: number; top3Sets?: any[]; top3Volume?: any[] }
     }>
     badges: {
         earned: {
@@ -57,6 +57,7 @@ interface DashboardData {
     }
     graphs: {
         myDaily: Array<{ date: string; pushups: number; pullups: number; squats: number; total: number }>
+        myDaily365?: Array<{ date: string; pushups: number; pullups: number; squats: number; total: number }>
     }
 }
 
@@ -101,6 +102,7 @@ export default function ChallengeDashboard() {
     const [sallyReps, setSallyReps] = useState<number>(0)
     const [showHonorPopup, setShowHonorPopup] = useState<{ badge: any; type: string } | null>(null)
     const [honorChecked, setHonorChecked] = useState(false)
+    const [graphPeriod, setGraphPeriod] = useState<'30' | '365'>('30')
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
     const lastInputRef = useRef<HTMLInputElement | null>(null)
@@ -170,8 +172,9 @@ export default function ChallengeDashboard() {
 
     const addSet = (type: 'pushups' | 'pullups' | 'squats') => {
         const current = localSets[type] || []
-        // Start empty by default (A4)
-        setLocalSets({ ...localSets, [type]: [...current, ""] })
+        // Copie la valeur précédente si elle existe
+        const prevValue = current.length > 0 ? current[current.length - 1] : ""
+        setLocalSets({ ...localSets, [type]: [...current, prevValue] })
         setTimeout(() => lastInputRef.current?.focus(), 10)
     }
 
@@ -242,6 +245,7 @@ export default function ChallengeDashboard() {
             if (res.ok) {
                 showToast("Progression sauvegardée", "success")
                 setHonorChecked(false)
+                setShowHonorPopup(null)
                 fetchData(selectedDate)
             }
         } catch (err) {
@@ -475,11 +479,56 @@ export default function ChallengeDashboard() {
                                             <span className="text-lg">{pRec?.badge ?? '-'}</span>
                                         </div>
                                         {(['pushups', 'pullups', 'squats'] as const).map(ex => (
-                                            <div key={ex} className="flex justify-between items-center mb-1.5 opacity-90 transition-opacity hover:opacity-100">
-                                                <span className="text-md">{ex === 'pushups' ? '💪' : ex === 'pullups' ? '🦍' : '🦵'}</span>
-                                                <div className="text-right overflow-hidden">
-                                                    <p className="text-[7.5px] font-bold text-gray-400 truncate max-w-[70px] leading-none mb-0.5 uppercase tracking-tighter">{pRec?.[ex]?.winner || 'Aucun record pour l’instant'}</p>
-                                                    <p className="text-xs font-black text-gray-800 leading-none">{pRec?.[ex]?.maxReps ?? 0}</p>
+                                            <div key={ex} className="flex justify-between items-start mb-2 border-b border-gray-100/50 pb-2 last:border-0 last:pb-0">
+                                                <span className="text-md opacity-90 mt-1">{ex === 'pushups' ? '💪' : ex === 'pullups' ? '🦍' : '🦵'}</span>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    {(pRec?.[ex]?.top3Sets || []).map((s: any, idx: number) => (
+                                                        <div key={idx} className={`flex items-center justify-end gap-1.5 ${idx === 0 ? '' : 'opacity-60'}`}>
+                                                            <p className="text-[8px] font-bold text-gray-400 truncate max-w-[50px] uppercase tracking-tighter">{s.winner}</p>
+                                                            <p className={`font-black text-gray-800 leading-none ${idx === 0 ? 'text-xs' : 'text-[10px]'}`}>{s.maxReps}</p>
+                                                            <span className="text-[8px]">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}</span>
+                                                        </div>
+                                                    ))}
+                                                    {!(pRec?.[ex]?.top3Sets?.length) && <p className="text-[8px] text-gray-400 italic">Vide</p>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* NEW SECTION: A3 TOP VOLUME */}
+                    <div className="space-y-3 pt-4">
+                        <div className="flex flex-col ml-2">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xl">📊</span>
+                                <h3 className="font-black text-xs text-gray-800 uppercase tracking-widest leading-none">Records — Volume Total Accumulé</h3>
+                            </div>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 ml-7 tracking-tighter">Somme de toutes les répétitions sur la période</p>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                            {(['day', 'week', 'month', 'year'] as const).map(pid => {
+                                const pRec = data?.records?.[pid];
+                                return (
+                                    <div key={`vol-${pid}`} className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-3xl border border-gray-100 shadow-sm transition-all hover:shadow-md">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full uppercase">{pid === 'day' ? 'Jour' : pid === 'week' ? 'Semaine' : pid === 'month' ? 'Mois' : 'Année'}</span>
+                                            <span className="text-lg">{pRec?.badge ?? '-'}</span>
+                                        </div>
+                                        {(['pushups', 'pullups', 'squats'] as const).map(ex => (
+                                            <div key={`vol-${ex}`} className="flex justify-between items-start mb-2 border-b border-gray-100/50 pb-2 last:border-0 last:pb-0">
+                                                <span className="text-md opacity-90 mt-1">{ex === 'pushups' ? '💪' : ex === 'pullups' ? '🦍' : '🦵'}</span>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    {(pRec?.[ex]?.top3Volume || []).map((s: any, idx: number) => (
+                                                        <div key={idx} className={`flex items-center gap-1.5 justify-end ${idx === 0 ? '' : 'opacity-60'}`}>
+                                                            <p className="text-[8px] font-bold text-gray-400 truncate max-w-[50px] uppercase tracking-tighter">{s.nickname}</p>
+                                                            <p className={`font-black text-gray-800 leading-none ${idx === 0 ? 'text-xs text-blue-600' : 'text-[10px]'}`}>{s.totalVolume}</p>
+                                                            <span className="text-[8px]">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}</span>
+                                                        </div>
+                                                    ))}
+                                                    {!(pRec?.[ex]?.top3Volume?.length) && <p className="text-[8px] text-gray-400 italic">Vide</p>}
                                                 </div>
                                             </div>
                                         ))}
@@ -530,15 +579,19 @@ export default function ChallengeDashboard() {
                                         <div className="flex items-center gap-3">
                                             <span className={`w-6 text-center font-black ${i < 3 ? 'text-blue-500' : 'text-gray-300'}`}>{i + 1}</span>
                                             <div>
-                                                <p className="font-black text-gray-900 text-sm leading-none">{u.nickname || 'Anonyme'}</p>
-                                                <div className="flex items-center gap-1 mt-1">
+                                                <Link href={`/u/${encodeURIComponent(u.nickname || '')}`} className="font-black text-gray-900 text-sm leading-none hover:text-blue-600 hover:underline transition-color" title={`Visiter le profil de ${u.nickname}`}>
+                                                    {u.nickname || 'Anonyme'}
+                                                </Link>
+                                                <div className="flex items-center gap-1 mt-1 cursor-help" title={`Statut moyen des apports par rapport à la consigne du jour`}>
                                                     <span className="text-[10px]">{ind.emoji}</span>
                                                     <span className="text-[8px] font-black text-gray-400 uppercase tracking-tight">{ind.label}</span>
-                                                    {u.streakCurrent > 0 && <span className="text-[8px] font-black text-orange-400">({u.streakCurrent}j 🔥)</span>}
+                                                    {u.streakCurrent > 0 && <span className="text-[8px] font-black text-orange-400" title={`🔥 Jours consécutifs avec dépassement de consigne`}>({u.streakCurrent}j 🔥)</span>}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="text-right"><p className="font-black text-blue-600 text-sm">{Math.round(u.completionRate)}%</p></div>
+                                        <div className="text-right cursor-help" title="Taux d'accomplissement des objectifs journaliers">
+                                            <p className="font-black text-blue-600 text-sm">{Math.round(u.completionRate)}%</p>
+                                        </div>
                                     </div>
                                 )
                             })}
@@ -550,16 +603,23 @@ export default function ChallengeDashboard() {
             {activeTab === 'graphs' && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                        <h3 className="font-black text-xs text-gray-400 uppercase tracking-widest mb-6 border-b pb-2">Répartition (30j)</h3>
+                        <div className="flex justify-between items-center mb-6 border-b pb-2">
+                            <h3 className="font-black text-xs text-gray-400 uppercase tracking-widest">Répartition Globale</h3>
+                            <div className="flex gap-1 bg-gray-50 p-1 rounded-lg border border-gray-100">
+                                <button onClick={() => setGraphPeriod('30')} className={`px-2 py-1 text-[10px] font-black rounded-md transition-all ${graphPeriod === '30' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>30J</button>
+                                <button onClick={() => setGraphPeriod('365')} className={`px-2 py-1 text-[10px] font-black rounded-md transition-all ${graphPeriod === '365' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>365J</button>
+                            </div>
+                        </div>
                         {(() => {
-                            const t = (data?.graphs?.myDaily || []).reduce((acc, d) => ({
+                            const dataset = graphPeriod === '365' ? data?.graphs?.myDaily365 : data?.graphs?.myDaily;
+                            const t = (dataset || []).reduce((acc: any, d: any) => ({
                                 pushups: acc.pushups + (d?.pushups || 0),
                                 pullups: acc.pullups + (d?.pullups || 0),
                                 squats: acc.squats + (d?.squats || 0),
                                 all: acc.all + (d?.total || 0)
                             }), { pushups: 0, pullups: 0, squats: 0, all: 0 })
 
-                            if (t.all === 0) return <p className="text-center py-10 text-gray-300 font-bold uppercase text-xs italic tracking-widest">Aucune donnée sur les 30 derniers jours</p>
+                            if (t.all === 0) return <p className="text-center py-10 text-gray-300 font-bold uppercase text-xs italic tracking-widest">Aucune donnée sur les {graphPeriod} derniers jours</p>
 
                             return (
                                 <div className="space-y-6">
@@ -613,12 +673,23 @@ export default function ChallengeDashboard() {
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="p-4 bg-gray-50 border-b border-gray-100 font-black text-[10px] text-center uppercase text-gray-400 tracking-widest">Détail des dettes</div>
-                        <div className="divide-y divide-gray-50">
+                    <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+                            <h3 className="font-black text-[10px] uppercase text-gray-400 tracking-widest">Leurs Pénitences, Nos Bières</h3>
+                            <span className="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black">{data?.cagnotte?.finesList?.length || 0} contributeurs</span>
+                        </div>
+                        <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
                             {(data?.cagnotte?.finesList || []).map(f => (
-                                <div key={f.nickname} className="flex justify-between items-center p-5">
-                                    <span className="font-black text-gray-800 uppercase text-xs tracking-tighter">{f.nickname}</span>
+                                <div key={f.nickname} className="flex justify-between items-center p-5 hover:bg-gray-50 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 font-black">
+                                            {f.nickname.substring(0, 1).toUpperCase()}
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="font-black text-gray-800 uppercase text-xs tracking-tighter">{f.nickname}</span>
+                                            <span className="text-[10px] font-bold text-gray-400 mt-0.5">La grande famille te remercie ! 🍻</span>
+                                        </div>
+                                    </div>
                                     <span className="font-black text-red-500 bg-red-50 px-4 py-1 rounded-full text-sm">{f.amount}€</span>
                                 </div>
                             ))}
@@ -626,168 +697,173 @@ export default function ChallengeDashboard() {
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
 
-            {activeTab === 'trophees' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    {/* Compteur de Gloire */}
-                    <div className="flex justify-between items-center px-2">
-                        <h3 className="font-black text-xs text-slate-500 uppercase tracking-widest">Compteur de gloire</h3>
-                        <span className="text-blue-600 font-black text-sm">{(data?.badges?.competitive?.ownerships || []).filter((o: any) => o.currentUser?.nickname).length} / {(data?.badges?.competitive?.ownerships || []).length}</span>
-                    </div>
-
-                    {/* Activité Récente */}
-                    <div className="bg-slate-900 rounded-[2.5rem] p-6 lg:p-8 border border-white/5 space-y-6 shadow-2xl relative overflow-hidden">
-                        <div className="flex items-center justify-between relative z-10">
-                            <h2 className="text-sm lg:text-lg font-black text-white uppercase tracking-tighter italic flex items-center gap-2">
-                                <span className="p-1 px-2 bg-indigo-500 rounded-lg text-xs not-italic">LIVE</span>
-                                Activité Récente
-                            </h2>
+            {
+                activeTab === 'trophees' && (
+                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        {/* Compteur de Gloire */}
+                        <div className="flex justify-between items-center px-2">
+                            <h3 className="font-black text-xs text-slate-500 uppercase tracking-widest">Compteur de gloire</h3>
+                            <span className="text-blue-600 font-black text-sm">{(data?.badges?.competitive?.ownerships || []).filter((o: any) => o.currentUser?.nickname).length} / {(data?.badges?.competitive?.ownerships || []).length}</span>
                         </div>
-                        <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar relative z-10 pr-2">
-                            {(data?.badges?.competitive?.events || []).length > 0 ? (
-                                (data?.badges?.competitive?.events || []).slice(0, 15).map((ev: any) => (
-                                    <div key={ev.id} className="bg-white/5 p-4 rounded-2xl border border-white/5 transition-all hover:bg-white/10 group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                        <div className="flex gap-4 items-center">
-                                            <span className="text-3xl sm:text-4xl shrink-0 group-hover:scale-110 transition-transform">{ev.badge?.emoji}</span>
-                                            <div>
-                                                <p className="text-[11px] font-bold text-white leading-relaxed">
-                                                    {ev.eventType === 'STEAL' ? (
-                                                        <>
-                                                            <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-orange-400 hover:underline">{ev.toUser?.nickname}</Link> a volé <span className="text-blue-400">[{ev.badge?.name}]</span> à <Link href={`/u/${encodeURIComponent(ev.fromUser?.nickname || '')}`} className="hover:underline">{ev.fromUser?.nickname}</Link>
-                                                        </>
-                                                    ) : ev.eventType === 'CLAIM' ? (
-                                                        <>
-                                                            <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-green-400 hover:underline">{ev.toUser?.nickname}</Link> a obtenu <span className="text-blue-400">[{ev.badge?.name}]</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-yellow-400 hover:underline">{ev.toUser?.nickname}</Link> a débloqué <span className="text-blue-400">[{ev.badge?.name}]</span>
-                                                        </>
-                                                    )}
-                                                </p>
-                                                <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
-                                                    {new Date().getTime() - new Date(ev.createdAt).getTime() < 86400000
-                                                        ? `Il y a ${Math.round((new Date().getTime() - new Date(ev.createdAt).getTime()) / 60000)} min`
-                                                        : new Date(ev.createdAt).toLocaleDateString("fr-FR", { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).toUpperCase()
-                                                    }
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
-                                            {ev.newValue > 0 && (
-                                                <div className="text-right sm:text-center shrink-0 border-r sm:border-r-0 sm:border-l border-white/10 pr-3 sm:pr-0 sm:pl-3">
-                                                    <p className="font-black text-white text-lg leading-none">{ev.newValue}</p>
-                                                    <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mt-1">Record</p>
+
+                        {/* Activité Récente */}
+                        <div className="bg-slate-900 rounded-[2.5rem] p-6 lg:p-8 border border-white/5 space-y-6 shadow-2xl relative overflow-hidden">
+                            <div className="flex items-center justify-between relative z-10">
+                                <h2 className="text-sm lg:text-lg font-black text-white uppercase tracking-tighter italic flex items-center gap-2">
+                                    <span className="p-1 px-2 bg-indigo-500 rounded-lg text-xs not-italic">LIVE</span>
+                                    Activité Récente
+                                </h2>
+                            </div>
+                            <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar relative z-10 pr-2">
+                                {(data?.badges?.competitive?.events || []).length > 0 ? (
+                                    (data?.badges?.competitive?.events || []).slice(0, 15).map((ev: any) => (
+                                        <div key={ev.id} className="bg-white/5 p-4 rounded-2xl border border-white/5 transition-all hover:bg-white/10 group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                            <div className="flex gap-4 items-center">
+                                                <span className="text-3xl sm:text-4xl shrink-0 group-hover:scale-110 transition-transform">{ev.badge?.emoji}</span>
+                                                <div>
+                                                    <p className="text-[11px] font-bold text-white leading-relaxed">
+                                                        {ev.eventType === 'STEAL' ? (
+                                                            <>
+                                                                <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-orange-400 hover:underline">{ev.toUser?.nickname}</Link> a volé <span className="text-blue-400">[{ev.badge?.name}]</span> à <Link href={`/u/${encodeURIComponent(ev.fromUser?.nickname || '')}`} className="hover:underline">{ev.fromUser?.nickname}</Link>
+                                                            </>
+                                                        ) : ev.eventType === 'CLAIM' ? (
+                                                            <>
+                                                                <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-green-400 hover:underline">{ev.toUser?.nickname}</Link> a obtenu <span className="text-blue-400">[{ev.badge?.name}]</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-yellow-400 hover:underline">{ev.toUser?.nickname}</Link> a débloqué <span className="text-blue-400">[{ev.badge?.name}]</span>
+                                                            </>
+                                                        )}
+                                                    </p>
+                                                    <p className="text-[9px] text-slate-500 font-bold uppercase mt-1">
+                                                        {new Date().getTime() - new Date(ev.createdAt).getTime() < 86400000
+                                                            ? `Il y a ${Math.round((new Date().getTime() - new Date(ev.createdAt).getTime()) / 60000)} min`
+                                                            : new Date(ev.createdAt).toLocaleDateString("fr-FR", { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).toUpperCase()
+                                                        }
+                                                    </p>
                                                 </div>
-                                            )}
-                                            {(() => {
-                                                const currentUserId = (session?.user as any)?.id;
-                                                const likes = ev.likes || [];
-                                                const count = likes.length;
-                                                const hasLiked = currentUserId && likes.some((l: any) => l.userId === currentUserId);
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
+                                                {ev.newValue > 0 && (
+                                                    <div className="text-right sm:text-center shrink-0 border-r sm:border-r-0 sm:border-l border-white/10 pr-3 sm:pr-0 sm:pl-3">
+                                                        <p className="font-black text-white text-lg leading-none">{ev.newValue}</p>
+                                                        <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest mt-1">Record</p>
+                                                    </div>
+                                                )}
+                                                {(() => {
+                                                    const currentUserId = (session?.user as any)?.id;
+                                                    const likes = ev.likes || [];
+                                                    const count = likes.length;
+                                                    const hasLiked = currentUserId && likes.some((l: any) => l.userId === currentUserId);
 
-                                                let emoji = "👍";
-                                                if (count === 2) emoji = "👍👍";
-                                                else if (count === 3) emoji = "🔥";
-                                                else if (count === 4) emoji = "🔥🔥";
-                                                else if (count >= 5) emoji = "❤️";
+                                                    let emoji = "👍";
+                                                    if (count === 2) emoji = "👍👍";
+                                                    else if (count === 3) emoji = "🔥";
+                                                    else if (count === 4) emoji = "🔥🔥";
+                                                    else if (count >= 5) emoji = "❤️";
 
-                                                return (
-                                                    <button
-                                                        onClick={() => toggleLike(ev.id)}
-                                                        className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-black text-sm shrink-0 shadow-sm ${hasLiked ? 'bg-indigo-500/20 border border-indigo-500/50 text-indigo-200' : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'}`}
-                                                    >
-                                                        <span className={`transition-all ${count === 0 ? 'opacity-40 grayscale' : 'scale-110'}`}>{emoji}</span>
-                                                        {count > 0 && <span className="text-xs">{count}</span>}
-                                                    </button>
-                                                );
-                                            })()}
+                                                    return (
+                                                        <button
+                                                            onClick={() => toggleLike(ev.id)}
+                                                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl transition-all font-black text-sm shrink-0 shadow-sm ${hasLiked ? 'bg-indigo-500/20 border border-indigo-500/50 text-indigo-200' : 'bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10'}`}
+                                                        >
+                                                            <span className={`transition-all ${count === 0 ? 'opacity-40 grayscale' : 'scale-110'}`}>{emoji}</span>
+                                                            {count > 0 && <span className="text-xs">{count}</span>}
+                                                        </button>
+                                                    );
+                                                })()}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-slate-500 text-xs font-bold text-center italic py-4">Aucune activité récente.</p>
-                            )}
+                                    ))
+                                ) : (
+                                    <p className="text-slate-500 text-xs font-bold text-center italic py-4">Aucune activité récente.</p>
+                                )}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Badges en Danger */}
-                    <div className="bg-red-50 rounded-[2.5rem] p-6 lg:p-8 space-y-6 shadow-sm border border-red-100">
-                        <h2 className="text-sm lg:text-lg font-black text-red-600 uppercase tracking-tighter italic flex items-center gap-2">
-                            <span className="p-1 px-2 bg-red-100 rounded-lg text-xs not-italic">⚠️</span>
-                            Badges en Danger
-                        </h2>
-                        <div className="space-y-3">
-                            {(data?.badges?.competitive?.danger || []).length > 0 ? (
-                                (data?.badges?.competitive?.danger || []).map((d: any) => (
-                                    <div key={d.badgeKey} className="bg-white p-4 rounded-3xl border border-red-100 flex justify-between items-center group shadow-sm hover:shadow-md transition-shadow">
-                                        <div className="flex items-center gap-4">
-                                            <span className="text-3xl sm:text-4xl group-hover:scale-110 transition-transform">{d.emoji}</span>
-                                            <div>
-                                                <p className="text-[10px] font-black text-slate-900 uppercase">{d.badgeName}</p>
-                                                <p className="text-[9px] font-bold text-slate-500 mt-1">
-                                                    Détenteur: <Link href={`/u/${encodeURIComponent(d.holder || '')}`} className="text-slate-900 hover:underline">{d.holder}</Link> ({d.currentValue})
+                        {/* Badges en Danger */}
+                        <div className="bg-red-50 rounded-[2.5rem] p-6 lg:p-8 space-y-6 shadow-sm border border-red-100">
+                            <h2 className="text-sm lg:text-lg font-black text-red-600 uppercase tracking-tighter italic flex items-center gap-2">
+                                <span className="p-1 px-2 bg-red-100 rounded-lg text-xs not-italic">⚠️</span>
+                                Badges en Danger
+                            </h2>
+                            <div className="space-y-3">
+                                {(data?.badges?.competitive?.danger || []).length > 0 ? (
+                                    (data?.badges?.competitive?.danger || []).map((d: any) => (
+                                        <div key={d.badgeKey} className="bg-white p-4 rounded-3xl border border-red-100 flex justify-between items-center group shadow-sm hover:shadow-md transition-shadow">
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-3xl sm:text-4xl group-hover:scale-110 transition-transform">{d.emoji}</span>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-900 uppercase">{d.badgeName}</p>
+                                                    <p className="text-[9px] font-bold text-slate-500 mt-1">
+                                                        Détenteur: <Link href={`/u/${encodeURIComponent(d.holder || '')}`} className="text-slate-900 hover:underline">{d.holder}</Link> ({d.currentValue})
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className="text-[10px] font-black text-red-600 uppercase">Menace: {d.challenger}</p>
+                                                <p className="text-[8px] font-black text-red-400 mt-1 uppercase tracking-widest bg-red-50 inline-block px-2 py-0.5 rounded-full">
+                                                    {d.diff === 0 ? "Égalité" : `Écart: ${d.diff}`}
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="text-right shrink-0">
-                                            <p className="text-[10px] font-black text-red-600 uppercase">Menace: {d.challenger}</p>
-                                            <p className="text-[8px] font-black text-red-400 mt-1 uppercase tracking-widest bg-red-50 inline-block px-2 py-0.5 rounded-full">
-                                                {d.diff === 0 ? "Égalité" : `Écart: ${d.diff}`}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-slate-500 text-xs font-bold text-center italic py-4 bg-white/50 rounded-2xl border border-dashed border-red-200">Tous les records sont hors d'atteinte... pour l'instant.</p>
-                            )}
+                                    ))
+                                ) : (
+                                    <p className="text-slate-500 text-xs font-bold text-center italic py-4 bg-white/50 rounded-2xl border border-dashed border-red-200">Tous les records sont hors d'atteinte... pour l'instant.</p>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
 
             {/* HONOR POPUP (A12) */}
-            {showHonorPopup && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full space-y-6 shadow-2xl animate-in zoom-in-95 duration-300">
-                        <div className="text-center">
-                            <span className="text-6xl mb-4 block">🏆</span>
-                            <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">PROUESSE DÉTECTÉE</h2>
-                            <p className="text-xs font-bold text-gray-400 uppercase mt-2">Vous êtes sur le point de marquer l'histoire.</p>
-                        </div>
+            {
+                showHonorPopup && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                        <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full space-y-6 shadow-2xl animate-in zoom-in-95 duration-300">
+                            <div className="text-center">
+                                <span className="text-6xl mb-4 block">🏆</span>
+                                <h2 className="text-2xl font-black italic uppercase tracking-tighter text-gray-900">PROUESSE DÉTECTÉE</h2>
+                                <p className="text-xs font-bold text-gray-400 uppercase mt-2">Vous êtes sur le point de marquer l'histoire.</p>
+                            </div>
 
-                        <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100">
-                            <p className="text-sm text-yellow-800 font-bold leading-relaxed">
-                                Je jure sur l'honneur que les répétitions saisies ont été effectuées avec une forme exemplaire.
-                            </p>
-                        </div>
+                            <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100">
+                                <p className="text-sm text-yellow-800 font-bold leading-relaxed">
+                                    Je jure sur l'honneur que les répétitions saisies ont été effectuées avec une forme exemplaire.
+                                </p>
+                            </div>
 
-                        <label className="flex items-center gap-3 cursor-pointer group">
-                            <input
-                                type="checkbox"
-                                checked={honorChecked}
-                                onChange={(e) => setHonorChecked(e.target.checked)}
-                                className="w-6 h-6 rounded-lg border-2 border-gray-200 checked:bg-blue-600 transition-all font-black"
-                            />
-                            <span className="font-bold text-sm text-gray-600 group-hover:text-blue-600 transition-colors uppercase">Je le jure</span>
-                        </label>
+                            <label className="flex items-center gap-3 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={honorChecked}
+                                    onChange={(e) => setHonorChecked(e.target.checked)}
+                                    className="w-6 h-6 rounded-lg border-2 border-gray-200 checked:bg-blue-600 transition-all font-black"
+                                />
+                                <span className="font-bold text-sm text-gray-600 group-hover:text-blue-600 transition-colors uppercase">Je le jure</span>
+                            </label>
 
-                        <div className="flex flex-col gap-2">
-                            <button
-                                onClick={saveLogs}
-                                disabled={!honorChecked}
-                                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-30 text-white font-black py-4 rounded-2xl shadow-xl transition-all uppercase tracking-widest text-xs"
-                            >
-                                Valider la séance
-                            </button>
-                            <button onClick={() => setShowHonorPopup(null)} className="w-full py-2 text-xs font-bold text-gray-400 uppercase hover:text-gray-600">Annuler</button>
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    onClick={saveLogs}
+                                    disabled={!honorChecked}
+                                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-30 text-white font-black py-4 rounded-2xl shadow-xl transition-all uppercase tracking-widest text-xs"
+                                >
+                                    Valider la séance
+                                </button>
+                                <button onClick={() => setShowHonorPopup(null)} className="w-full py-2 text-xs font-bold text-gray-400 uppercase hover:text-gray-600">Annuler</button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-        </div>
+        </div >
     )
 }

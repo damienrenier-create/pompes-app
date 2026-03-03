@@ -5,7 +5,7 @@ export const BADGE_DEFINITIONS = [
     // B1: Competitive Transferable
     { key: "big_flexer", name: "Gros Flexeur", emoji: "🚀", description: "Meilleur bonus reps (Total - Cible) sur une journée", metricType: "MAX_BONUS", exerciseScope: "ALL", type: "COMPETITIVE" },
     { key: "regular_flexer", name: "Flexeur Régulier", emoji: "🔥", description: "Plus longue streak de jours avec bonus > 0", metricType: "BONUS_STREAK", exerciseScope: "ALL", type: "COMPETITIVE" },
-    { key: "perfect_soldier", name: "Le bon petit nazi", emoji: "🥸", description: "Celui qui fait exactement le bon nombre de reps chaque jour. Tie-break: plus longue streak.", metricType: "PERFECT_TARGET_STREAK", exerciseScope: "ALL", type: "COMPETITIVE" },
+    { key: "perfect_soldier", name: "Le bon petit nazi", emoji: "👨🏻", description: "Celui qui fait exactement le bon nombre de reps chaque jour. Tie-break: plus longue streak.", metricType: "PERFECT_TARGET_STREAK", exerciseScope: "ALL", type: "COMPETITIVE" },
     { key: "king_of_set_all", name: "Roi de la Plus Longue Série", emoji: "👑", description: "Plus grande série réalisée (tous exos)", metricType: "MAX_SET", exerciseScope: "ALL", type: "COMPETITIVE" },
     { key: "king_of_set_pushups", name: "Furie des Pompes", emoji: "💪", description: "Plus grande série de pompes", metricType: "MAX_SET", exerciseScope: "PUSHUPS", type: "COMPETITIVE" },
     { key: "king_of_set_pullups", name: "Roi des Tractions", emoji: "🧗", description: "Plus grande série de tractions", metricType: "MAX_SET", exerciseScope: "PULLUPS", type: "COMPETITIVE" },
@@ -38,9 +38,9 @@ export const BADGE_DEFINITIONS = [
     { key: "centurion", name: "Le Centurion", emoji: "💯", description: "Avoir fait 100 reps d'un coup", threshold: 100, isUnique: false, isTransferable: false, metricType: "MILESTONE_SET", exerciseScope: "ALL", type: "MILESTONE" },
 
     // Milestones (Totals Globaux)
-    { key: "general_1k", name: "Le Soldat", emoji: "🪖", description: "1 000 reps cumulées", threshold: 1000, isUnique: false, isTransferable: false, metricType: "MILESTONE_TOTAL", exerciseScope: "ALL", type: "MILESTONE" },
-    { key: "general_5k", name: "Le Sergent", emoji: "🎖️", description: "5 000 reps cumulées", threshold: 5000, isUnique: false, isTransferable: false, metricType: "MILESTONE_TOTAL", exerciseScope: "ALL", type: "MILESTONE" },
-    { key: "general_10k", name: "Le Général", emoji: "💂", description: "10 000 reps cumulées", threshold: 10000, isUnique: false, isTransferable: false, metricType: "MILESTONE_TOTAL", exerciseScope: "ALL", type: "MILESTONE" },
+    { key: "general_1k", name: "Le Soldat", emoji: "🔫", description: "1 000 reps cumulées", threshold: 1000, isUnique: false, isTransferable: false, metricType: "MILESTONE_TOTAL", exerciseScope: "ALL", type: "MILESTONE" },
+    { key: "general_5k", name: "Le Sergent", emoji: "🛡️", description: "5 000 reps cumulées", threshold: 5000, isUnique: false, isTransferable: false, metricType: "MILESTONE_TOTAL", exerciseScope: "ALL", type: "MILESTONE" },
+    { key: "general_10k", name: "Le Général", emoji: "🏰", description: "10 000 reps cumulées", threshold: 10000, isUnique: false, isTransferable: false, metricType: "MILESTONE_TOTAL", exerciseScope: "ALL", type: "MILESTONE" },
     { key: "general_20k", name: "Le Warlord", emoji: "⚔️", description: "20 000 reps cumulées", threshold: 20000, isUnique: false, isTransferable: false, metricType: "MILESTONE_TOTAL", exerciseScope: "ALL", type: "MILESTONE" },
     { key: "general_40k", name: "Le Conquérant", emoji: "🌍", description: "40 000 reps cumulées", threshold: 40000, isUnique: false, isTransferable: false, metricType: "MILESTONE_TOTAL", exerciseScope: "ALL", type: "MILESTONE" },
     { key: "general_60k", name: "Le Demi-Dieu", emoji: "⚡", description: "60 000 reps cumulées", threshold: 60000, isUnique: false, isTransferable: false, metricType: "MILESTONE_TOTAL", exerciseScope: "ALL", type: "MILESTONE" },
@@ -75,7 +75,7 @@ export const BADGE_DEFINITIONS = [
     { key: "survivor_120d", name: "Le Saint", emoji: "👼", description: "120 jours sans amende", threshold: 120, isUnique: false, isTransferable: false, metricType: "STREAK_NO_FINES", exerciseScope: "ALL", type: "MILESTONE" },
 
     // Milestones (Amendes) - Mécène
-    { key: "mecene_50", name: "Le Bon Samaritain", emoji: "🪙", description: "50€ d'amendes payées", threshold: 50, isUnique: false, isTransferable: false, metricType: "FINES_AMOUNT", exerciseScope: "ALL", type: "MILESTONE" },
+    { key: "mecene_50", name: "Le Bon Samaritain", emoji: "😇", description: "50€ d'amendes payées", threshold: 50, isUnique: false, isTransferable: false, metricType: "FINES_AMOUNT", exerciseScope: "ALL", type: "MILESTONE" },
     { key: "mecene_100", name: "Sponsor Officiel", emoji: "💰", description: "100€ d'amendes payées", threshold: 100, isUnique: false, isTransferable: false, metricType: "FINES_AMOUNT", exerciseScope: "ALL", type: "MILESTONE" },
 
     // Milestones (Heures) - Lève-tôt (Avant 6h)

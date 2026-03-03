@@ -128,6 +128,13 @@ export default async function PantheonPage() {
         })
         .filter(Boolean);
 
+    const serverTime = new Intl.DateTimeFormat('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    }).format(new Date());
+
     return (
         <PantheonClient
             currentUser={allUsers.find((u: any) => u.id === userId)}
@@ -137,6 +144,7 @@ export default async function PantheonPage() {
             recentEvents={allEvents}
             virtualizedData={virtualizedData}
             dangerList={dangerList as any}
+            serverTime={serverTime}
         />
     );
 }

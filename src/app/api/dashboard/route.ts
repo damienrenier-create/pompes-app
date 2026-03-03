@@ -128,15 +128,33 @@ export async function GET(req: Request) {
             for (const ex of exTypes) {
                 const periodSets = leaderboard.flatMap(u => (u.sets || []).filter((s: any) => s.exercise === ex && p.filter(s)).map((s: any) => ({
                     ...s,
+                    userId: u.id,
                     nickname: u.nickname,
                     userTotalEx: ex === "PUSHUP" ? u.totalPushupsAllTime : ex === "PULLUP" ? u.totalPullupsAllTime : u.totalSquatsAllTime
                 })));
 
+                // Calcul du Volume Top 3
+                const volumeMap = new Map<string, { nickname: string, totalVolume: number }>();
+                periodSets.forEach((s: any) => {
+                    const prev = volumeMap.get(s.userId) || { nickname: s.nickname, totalVolume: 0 };
+                    volumeMap.set(s.userId, { nickname: s.nickname, totalVolume: prev.totalVolume + s.reps });
+                });
+                const top3Volume = Array.from(volumeMap.values()).sort((a, b) => b.totalVolume - a.totalVolume).slice(0, 3);
+
                 if (periodSets.length > 0) {
-                    periodSets.sort((a, b) => b.reps - a.reps || b.userTotalEx - a.userTotalEx || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-                    recordsData[p.id][ex.toLowerCase() + "s"] = { winner: periodSets[0].nickname, maxReps: periodSets[0].reps };
+                    periodSets.sort((a: any, b: any) => b.reps - a.reps || b.userTotalEx - a.userTotalEx || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+                    const uniqueSetsMap = new Map<string, any>();
+                    periodSets.forEach((s: any) => {
+                        if (!uniqueSetsMap.has(s.userId)) uniqueSetsMap.set(s.userId, s);
+                    });
+                    const top3Sets = Array.from(uniqueSetsMap.values()).slice(0, 3).map((s: any) => ({ winner: s.nickname, maxReps: s.reps }));
+
+                    recordsData[p.id][ex.toLowerCase() + "s"] = {
+                        winner: top3Sets[0]?.winner, maxReps: top3Sets[0]?.maxReps, top3Sets, top3Volume
+                    };
                 } else {
-                    recordsData[p.id][ex.toLowerCase() + "s"] = { winner: "Pas de record", maxReps: 0 };
+                    recordsData[p.id][ex.toLowerCase() + "s"] = { winner: "Pas de record", maxReps: 0, top3Sets: [], top3Volume: [] };
                 }
             }
         }
@@ -223,6 +241,19 @@ export async function GET(req: Request) {
 
         // Graphs (Simplified)
         const myDaily30 = getDatesInRangeToToday(startDate30).map(date => {
+            const daySets = (currentUserLB?.sets || []).filter((s: any) => s.date === date);
+            return {
+                date,
+                pushups: daySets.filter((s: any) => s.exercise === "PUSHUP").reduce((sum: number, s: any) => (sum || 0) + (s.reps || 0), 0),
+                pullups: daySets.filter((s: any) => s.exercise === "PULLUP").reduce((sum: number, s: any) => (sum || 0) + (s.reps || 0), 0),
+                squats: daySets.filter((s: any) => s.exercise === "SQUAT").reduce((sum: number, s: any) => (sum || 0) + (s.reps || 0), 0),
+                total: daySets.reduce((sum: number, s: any) => (sum || 0) + (s.reps || 0), 0)
+            };
+        });
+
+        const startDate365 = new Date(today);
+        startDate365.setDate(startDate365.getDate() - 365);
+        const myDaily365 = getDatesInRangeToToday(formatDateISO(startDate365)).map(date => {
             const daySets = (currentUserLB?.sets || []).filter((s: any) => s.date === date);
             return {
                 date,
@@ -355,7 +386,8 @@ export async function GET(req: Request) {
                 }))).sort((a: any, b: any) => b.reps - a.reps || b.totalPushupsAllTime - a.totalPushupsAllTime || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).slice(0, 3)
             },
             graphs: {
-                myDaily: myDaily30
+                myDaily: myDaily30,
+                myDaily365: myDaily365
             }
         });
 
