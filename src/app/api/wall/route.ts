@@ -78,18 +78,22 @@ export async function POST(req: Request) {
         });
 
         if (!response.ok) {
-            throw new Error(`Apps Script responded with status: ${response.status}`);
+            const txt = await response.text();
+            throw new Error(`Statut ${response.status}: ${txt.substring(0, 100)}...`);
         }
 
-        const data = await response.json();
-
-        if (data.status !== "success") {
-            return NextResponse.json({ error: data.message || "Failed to post message" }, { status: 400 });
+        const txt = await response.text();
+        try {
+            const data = JSON.parse(txt);
+            if (data.status !== "success") {
+                return NextResponse.json({ error: data.message || `Refus du script Google: ${txt.substring(0, 50)}` }, { status: 400 });
+            }
+            return NextResponse.json({ success: true, data });
+        } catch (e) {
+            throw new Error(`Le Google Script ne renvoie pas de JSON valide. Action bloquée. (Accès anonyme requis ?). Reçu: ${txt.substring(0, 100)}...`);
         }
-
-        return NextResponse.json({ success: true, data });
     } catch (error: any) {
         console.error("Wall POST error:", error);
-        return NextResponse.json({ error: "Failed to post message" }, { status: 500 });
+        return NextResponse.json({ error: error.message || "Failed to post message" }, { status: 500 });
     }
 }
