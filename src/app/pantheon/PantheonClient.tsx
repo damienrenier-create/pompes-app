@@ -17,9 +17,11 @@ import {
     X,
     Info,
     CheckCircle2,
-    CircleDashed
+    CircleDashed,
+    RefreshCw
 } from "lucide-react";
 import { SPECIAL_DAYS } from "@/config/specialDays";
+import { useRouter } from "next/navigation";
 
 // Replace date-fns with native Intl
 const formatTime = (dateStr: any) => {
@@ -59,6 +61,14 @@ export default function PantheonClient({
     const [searchTerm, setSearchTerm] = useState("");
     const [filterType, setFilterType] = useState<string | null>(null);
     const [selectedEvent, setSelectedEvent] = useState<any>(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const router = useRouter();
+
+    const handleRefresh = () => {
+        setIsRefreshing(true);
+        router.refresh();
+        setTimeout(() => setIsRefreshing(false), 800);
+    };
 
     // Filtered Badge Catalog
     const filteredCatalog = useMemo(() => {
@@ -112,6 +122,14 @@ export default function PantheonClient({
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleRefresh}
+                                    disabled={isRefreshing}
+                                    className="bg-white hover:bg-slate-50 text-indigo-600 font-bold px-4 py-3 rounded-2xl transition-all flex items-center gap-2 border border-slate-200 shadow-sm disabled:opacity-50"
+                                >
+                                    <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
+                                    <span className="hidden sm:inline">Actualiser</span>
+                                </button>
                                 <Link
                                     href="/"
                                     className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-3 rounded-2xl transition-all flex items-center gap-2 border border-slate-200 shadow-sm"
@@ -241,7 +259,7 @@ export default function PantheonClient({
                                 {(() => {
                                     const personalBadges = badgeOwnerships.filter(bo => bo.currentUserId === currentUser?.id);
                                     return personalBadges.length > 0 ? personalBadges.map((b: any, i: number) => (
-                                        <div key={i} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow">
+                                        <div key={i} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4 hover:shadow-md transition-shadow group relative cursor-help">
                                             <span className="text-3xl">{b.badge?.emoji}</span>
                                             <div>
                                                 <div className="flex items-center gap-2 mb-0.5">
@@ -252,8 +270,18 @@ export default function PantheonClient({
                                                 </div>
                                                 <p className="text-[10px] text-slate-500 font-medium leading-tight mb-1">{b.badge?.description}</p>
                                                 {b.badge?.type === 'MILESTONE' && b.currentValue > 1 && (
-                                                    <p className="text-[9px] font-black text-indigo-500 uppercase">Série courante : {b.currentValue}</p>
+                                                    <p className="text-[9px] font-black text-indigo-500 uppercase">Valeur/Série courante : {b.currentValue}</p>
                                                 )}
+                                                {b.badge?.type === 'COMPETITIVE' && (
+                                                    <p className="text-[9px] font-black text-orange-500 uppercase">Score actuel : {b.currentValue}</p>
+                                                )}
+                                            </div>
+
+                                            {/* Tooltip Hover */}
+                                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-slate-900 text-white text-[10px] font-bold p-3 rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 shadow-xl">
+                                                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
+                                                <p className="text-indigo-300 mb-1">{b.badge?.name}</p>
+                                                {b.badge?.description}
                                             </div>
                                         </div>
                                     )) : (
@@ -273,7 +301,7 @@ export default function PantheonClient({
                                         const def = badgeDefinitions.find(d => d.key === key);
                                         if (!def) return null;
                                         return (
-                                            <div key={i} className={`p-4 rounded-2xl border transition-all flex items-center justify-between ${value ? 'bg-indigo-50/50 border-indigo-100 opacity-100 shadow-sm' : 'bg-white border-slate-100 opacity-60 grayscale shadow-none'}`}>
+                                            <div key={i} className={`group relative p-4 rounded-2xl border transition-all flex items-center justify-between cursor-help ${value ? 'bg-indigo-50/50 border-indigo-100 opacity-100 shadow-sm' : 'bg-white border-slate-100 opacity-60 grayscale shadow-none hover:grayscale-0'}`}>
                                                 <div className="flex items-center gap-3">
                                                     <span className="text-xl">{def.emoji}</span>
                                                     <div>
@@ -282,6 +310,14 @@ export default function PantheonClient({
                                                     </div>
                                                 </div>
                                                 {!!value && <Star className="text-yellow-400 fill-yellow-400" size={14} />}
+
+                                                {/* Tooltip Hover */}
+                                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-slate-900 text-white text-[10px] font-bold p-3 rounded-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 shadow-xl">
+                                                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45"></div>
+                                                    <p className="text-purple-300 mb-1">{def.name}</p>
+                                                    {def.description}
+                                                    {!value && <p className="mt-2 text-slate-400 font-normal italic">Objectif non rempli.</p>}
+                                                </div>
                                             </div>
                                         );
                                     })}
@@ -447,15 +483,18 @@ export default function PantheonClient({
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="flex flex-wrap gap-2 group-hover:cursor-help" title="Gagnez ces badges pour décorer votre identité">
                                         {userOwnerships.slice(0, 3).map((bo, j) => (
-                                            <span key={j} className="text-lg bg-white/5 w-8 h-8 flex items-center justify-center rounded-lg" title={bo.badge?.name}>{bo.badge?.emoji}</span>
+                                            <span key={j} className="text-lg bg-white/5 w-8 h-8 flex items-center justify-center rounded-lg hover:scale-125 transition-transform" title={bo.badge?.name}>{bo.badge?.emoji}</span>
                                         ))}
-                                        {Object.entries(virtuals).filter(([_, v]) => !!v).slice(0, 3).map(([key, _]: [string, any], j) => (
-                                            <span key={`v-${j}`} className="text-lg bg-white/5 w-8 h-8 flex items-center justify-center rounded-lg grayscale opacity-50" title={key.replace('_', ' ')}>
-                                                {badgeDefinitions.find(d => d.key === key)?.emoji}
-                                            </span>
-                                        ))}
+                                        {Object.entries(virtuals).filter(([_, v]) => !!v).slice(0, 3).map(([key, _]: [string, any], j) => {
+                                            const def = badgeDefinitions.find(d => d.key === key);
+                                            return (
+                                                <span key={`v-${j}`} className="text-lg bg-white/5 w-8 h-8 flex items-center justify-center rounded-lg grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all hover:scale-125" title={def?.name}>
+                                                    {def?.emoji}
+                                                </span>
+                                            );
+                                        })}
                                         {(userOwnerships.length + virtualScore > 6) && (
                                             <span className="text-[9px] font-black text-slate-600 flex items-center justify-center px-1">+{userOwnerships.length + virtualScore - 6}</span>
                                         )}

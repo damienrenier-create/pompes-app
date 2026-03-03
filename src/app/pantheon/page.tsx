@@ -58,10 +58,10 @@ export default async function PantheonPage() {
                 centurion: s.maxSetAll >= 100,
                 general_10k: s.totalAll >= 10000,
                 survivor_30d: s.fineFreeStreak >= 30,
-                early_bird: s.hasEarly,
-                night_owl: s.hasLate,
-                high_noon: s.hasNoon,
-                master_thief: s.stealCount
+                early_bird: s.earlyStreak >= 1,
+                night_owl: s.lateStreak >= 1,
+                high_noon: s.noonStreak >= 1,
+                master_thief: s.stealCount > 0
             }
         };
     });
@@ -82,6 +82,9 @@ export default async function PantheonPage() {
                 if (def.metricType === "BONUS_STREAK") return s.maxBonusStreak || 0;
                 if (def.metricType === "PERFECT_TARGET_STREAK") return s.maxPerfectStreak || 0;
                 if (def.metricType === "STEAL_COUNT") return s.stealCount || 0;
+                if (def.metricType === "BALANCE_RATIO") return s.balanceRatio || 0;
+                if (def.metricType === "MONO_EXO_STREAK") return s.maxMonoExoStreak || 0;
+                if (def.metricType === "TRI_EXO_STREAK") return s.maxTriExoStreak || 0;
                 if (def.metricType === "MAX_SET") {
                     if (def.exerciseScope === "PUSHUPS") return s.maxSetPushups || 0;
                     if (def.exerciseScope === "PULLUPS") return s.maxSetPullups || 0;
@@ -92,6 +95,7 @@ export default async function PantheonPage() {
                     const exo = def.exerciseScope === "PUSHUPS" ? "PUSHUP" : def.exerciseScope === "PULLUPS" ? "PULLUP" : "SQUAT";
                     return s.setsByTarget ? s.setsByTarget(exo, def.seriesTarget!) : 0;
                 }
+                if (def.metricType === "TOTAL_FINES_AMOUNT") return s.totalFinesAmount || 0;
                 return 0;
             };
 
