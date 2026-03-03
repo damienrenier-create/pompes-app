@@ -60,15 +60,13 @@ export default function Navbar() {
                     <div className="flex items-center gap-2 sm:gap-4">
                         {session ? (
                             <>
-                                <a
-                                    href="https://photos.app.goo.gl/FrtN2kjDRY8vGQVP6"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <Link
+                                    href="/album"
                                     className="hidden md:flex items-center gap-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold px-4 py-2 rounded-xl transition-all text-xs border border-indigo-100"
                                 >
                                     <Camera size={14} />
                                     Album
-                                </a>
+                                </Link>
                                 {(session?.user as any)?.isAdmin && (
                                     <Link
                                         href="/admin"
