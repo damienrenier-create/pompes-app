@@ -484,13 +484,46 @@ export async function updateBadgesPostSave(userId: string) {
         }
 
         if (bestUser && bestValue > 0) {
-            if (ownership?.currentUserId === bestUser.id && ownership?.currentValue >= bestValue) continue;
-            const isDifferent = ownership?.currentUserId !== (bestUser as any).id || ownership?.currentValue !== bestValue;
-            if (isDifferent) {
-                const eventType = !ownership?.currentUserId ? (def.isUnique ? "UNIQUE_AWARDED" : "CLAIM") : "STEAL";
-                await (prisma as any).badgeOwnership.update({ where: { badgeKey: def.key }, data: { currentUserId: (bestUser as any).id, currentValue: bestValue, achievedAt: new Date(), locked: def.isUnique } });
-                await (prisma as any).badgeEvent.create({ data: { badgeKey: def.key, fromUserId: ownership?.currentUserId, toUserId: (bestUser as any).id, eventType, previousValue: ownership?.currentValue, newValue: bestValue } });
-            }
+            const isSameUser = ownership?.currentUserId === bestUser.id;
+            const isBetterValue = bestValue > (ownership?.currentValue || 0);
+
+            if (isSameUser && !isBetterValue) continue;
+
+            // Anti-duplicate: check if identical record was JUST created (within last 5s)
+            const recentSameEvent = await (prisma as any).badgeEvent.findFirst({
+                where: {
+                    badgeKey: def.key,
+                    toUserId: (bestUser as any).id,
+                    newValue: bestValue,
+                    createdAt: { gte: new Date(Date.now() - 5000) }
+                }
+            });
+            if (recentSameEvent) continue;
+
+            const eventType = !ownership?.currentUserId
+                ? (def.isUnique ? "UNIQUE_AWARDED" : "CLAIM")
+                : (isSameUser ? "CLAIM" : "STEAL");
+
+            await (prisma as any).badgeOwnership.update({
+                where: { badgeKey: def.key },
+                data: {
+                    currentUserId: (bestUser as any).id,
+                    currentValue: bestValue,
+                    achievedAt: new Date(),
+                    locked: def.isUnique
+                }
+            });
+
+            await (prisma as any).badgeEvent.create({
+                data: {
+                    badgeKey: def.key,
+                    fromUserId: isSameUser ? null : ownership?.currentUserId,
+                    toUserId: (bestUser as any).id,
+                    eventType,
+                    previousValue: ownership?.currentValue,
+                    newValue: bestValue
+                }
+            });
         }
     }
 }

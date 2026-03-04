@@ -51,7 +51,7 @@ export default function Navbar() {
                                     className="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 font-bold px-3 py-2 rounded-xl transition-all text-xs uppercase tracking-wider"
                                 >
                                     <MessageSquare size={14} />
-                                    Mur
+                                    Place publique
                                 </Link>
                             </div>
                         )}

@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { HelpCircle } from "lucide-react"
+import RewardDetailSheet from "./RewardDetailSheet"
 
 interface DashboardData {
     todayISO: string
@@ -22,6 +24,9 @@ interface DashboardData {
         totalSquatsAllTime: number
         repsToday: number
         finesDueEur: number
+        isInjured?: boolean
+        isVeteran?: boolean
+        currentMedicalNote?: string | null
     }>
     records: Record<string, {
         badge: string
@@ -113,6 +118,9 @@ export default function ChallengeDashboard() {
     const [honorChecked, setHonorChecked] = useState(false)
     const [graphPeriod, setGraphPeriod] = useState<'30' | '365'>('30')
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+    const [mood, setMood] = useState("")
+    const [statuses, setStatuses] = useState<any[]>([])
+    const [rewardDetail, setRewardDetail] = useState<any | null>(null)
 
     const lastInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -157,6 +165,50 @@ export default function ChallengeDashboard() {
             showToast("Erreur de chargement", "error")
         } finally {
             setLoading(false)
+            fetchStatuses()
+        }
+    }
+
+    const fetchStatuses = async () => {
+        try {
+            const res = await fetch("/api/status")
+            if (res.ok) {
+                const s = await res.json()
+                setStatuses(s)
+                // If current user has a status, pre-fill the mood input
+                const myStatus = s.find((x: any) => x.userId === (session?.user as any)?.id)
+                if (myStatus) setMood(myStatus.content)
+            }
+        } catch (err) {
+            console.error("Fetch Statuses Error:", err)
+        }
+    }
+
+    const saveMood = async () => {
+        if (!mood.trim()) return
+        try {
+            const res = await fetch("/api/status", {
+                method: "POST",
+                body: JSON.stringify({ content: mood }),
+                headers: { "Content-Type": "application/json" }
+            })
+            if (res.ok) {
+                showToast("Mood partagé ! ✨", "success")
+                fetchStatuses()
+            }
+        } catch (err) {
+            showToast("Erreur lors du partage du mood", "error")
+        }
+    }
+
+    const toggleStatusLike = async (statusId: string) => {
+        try {
+            const res = await fetch(`/api/status/${statusId}/like`, { method: "POST" })
+            if (res.ok) {
+                fetchStatuses()
+            }
+        } catch (err) {
+            console.error("Like Error:", err)
         }
     }
 
@@ -319,6 +371,11 @@ export default function ChallengeDashboard() {
     if (loading && !data?.todayISO) return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            {/* MOOD / REWARD DETAIL OVERLAY (NEW) */}
+            <RewardDetailSheet
+                detail={rewardDetail}
+                onClose={() => setRewardDetail(null)}
+            />
         </div>
     )
 
@@ -384,8 +441,11 @@ export default function ChallengeDashboard() {
                                     <p className="text-indigo-400 text-[9px] font-bold uppercase tracking-widest leading-none mt-1">{data.xp.currentUser.belt}</p>
                                 </div>
                             </div>
-                            <div className="text-right">
+                            <div className="text-right flex flex-col items-end gap-1">
                                 <span className="text-white font-black text-xl tracking-tight">Lv. {data.xp.currentUser.level}</span>
+                                <Link href="/faq" className="text-indigo-400 p-1 hover:bg-white/10 rounded-lg transition-colors" title="Comment ça marche ?">
+                                    <HelpCircle size={14} />
+                                </Link>
                             </div>
                         </div>
                         <div className="relative z-10 pt-1">
@@ -499,6 +559,59 @@ export default function ChallengeDashboard() {
                         {saving ? "Sauvegarde..." : "Valider la séance"}
                     </button>
 
+                    {/* MOOD / STATUS INPUT (NEW) */}
+                    <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-lg">💭</span>
+                                <span className="font-black text-gray-800 uppercase text-[10px] tracking-widest">Quel est ton mood ?</span>
+                            </div>
+                            <span className={`text-[10px] font-bold ${mood.length > 45 ? 'text-red-500' : 'text-gray-400'}`}>{mood.length}/50</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={mood}
+                                onChange={(e) => setMood(e.target.value.substring(0, 50))}
+                                placeholder="C'est quoi le moral aujourd'hui ?"
+                                className="flex-1 h-12 bg-gray-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl px-4 font-bold text-sm text-gray-900 outline-none transition-all placeholder:text-gray-300"
+                            />
+                            <button
+                                onClick={saveMood}
+                                className="h-12 px-5 bg-slate-900 text-white font-black rounded-2xl text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-slate-200"
+                            >
+                                Partager
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* MOOD HORIZONTAL FEED (NEW) */}
+                    {statuses.length > 0 && (
+                        <div className="bg-white/50 backdrop-blur-sm rounded-3xl p-4 border border-gray-100 overflow-hidden">
+                            <div className="flex items-center gap-2 mb-3 ml-1">
+                                <span className="text-xs">✨</span>
+                                <span className="font-black text-gray-400 uppercase text-[9px] tracking-widest italic">Humeurs récentes (24h)</span>
+                            </div>
+                            <div className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth">
+                                {statuses.map((s: any) => (
+                                    <div key={s.id} className="flex-shrink-0 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm min-w-[140px] max-w-[200px] relative group">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <Link href={`/u/${s.nickname}`} className="text-[9px] font-black text-blue-600 hover:underline truncate uppercase">{s.nickname}</Link>
+                                            <button
+                                                onClick={() => toggleStatusLike(s.id)}
+                                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-all ${s.hasLiked ? 'bg-red-50 text-red-500' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
+                                            >
+                                                <span className="text-[10px] font-black">{s.likeCount}</span>
+                                                <span className="text-[10px]">{s.hasLiked ? '❤️' : '🤍'}</span>
+                                            </button>
+                                        </div>
+                                        <p className="text-xs font-bold text-gray-700 leading-tight italic line-clamp-2">“{s.content}”</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* RENAME & REPOSITION: 🏆 RECORDS HIGHLIGHT (NOW BELOW SAVE) */}
                     <div className="space-y-3 pt-2">
                         <div className="flex flex-col ml-2">
@@ -512,7 +625,16 @@ export default function ChallengeDashboard() {
                             {(['day', 'week', 'month', 'year'] as const).map(pid => {
                                 const pRec = data?.records?.[pid];
                                 return (
-                                    <div key={pid} className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-3xl border border-gray-100 shadow-sm transition-all hover:shadow-md">
+                                    <div
+                                        key={pid}
+                                        onClick={() => setRewardDetail({
+                                            name: `Record ${pid === 'day' ? 'du jour' : pid === 'week' ? 'de la semaine' : pid === 'month' ? 'du mois' : 'de l\'année'}`,
+                                            emoji: pRec?.badge || '🏆',
+                                            description: `Meilleure série réalisée sur cette période. Les records poussent tout le monde vers le haut !`,
+                                            type: "RECORD"
+                                        })}
+                                        className="bg-gradient-to-br from-white to-gray-50 p-4 rounded-3xl border border-gray-100 shadow-sm transition-all hover:shadow-md cursor-pointer active:scale-95"
+                                    >
                                         <div className="flex justify-between items-center mb-3">
                                             <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full uppercase">{pid === 'day' ? 'Jour' : pid === 'week' ? 'Semaine' : pid === 'month' ? 'Mois' : 'Année'}</span>
                                             <span className="text-lg">{pRec?.badge ?? '-'}</span>
@@ -523,7 +645,7 @@ export default function ChallengeDashboard() {
                                                 <div className="flex flex-col items-end gap-1">
                                                     {(pRec?.[ex]?.top3Sets || []).map((s: any, idx: number) => (
                                                         <div key={idx} className={`flex items-center justify-end gap-1.5 ${idx === 0 ? '' : 'opacity-60'}`}>
-                                                            <p className="text-[8px] font-bold text-gray-400 truncate max-w-[50px] uppercase tracking-tighter">{s.winner}</p>
+                                                            <p className="text-[8px] font-bold text-gray-400 truncate max-w-[50px] uppercase tracking-tighter hover:text-blue-500 underline decoration-gray-200" onClick={(e) => { e.stopPropagation(); router.push(`/u/${encodeURIComponent(s.winner)}`) }}>{s.winner}</p>
                                                             <p className={`font-black text-gray-800 leading-none ${idx === 0 ? 'text-xs' : 'text-[10px]'}`}>{s.maxReps}</p>
                                                             <span className="text-[8px]">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}</span>
                                                         </div>
@@ -623,9 +745,14 @@ export default function ChallengeDashboard() {
                                                         const userXP = data?.xp?.leaderboard.find((x: any) => x.id === u.id);
                                                         return userXP ? <span className="text-xs font-black text-slate-400" title={userXP.animal}>[Lv.{userXP.level} {userXP.emoji}]</span> : null;
                                                     })()}
-                                                    <Link href={`/u/${encodeURIComponent(u.nickname || '')}`} className="font-black text-gray-900 text-sm leading-none hover:text-blue-600 hover:underline transition-color" title={`Visiter le profil de ${u.nickname}`}>
+                                                    <Link href={`/u/${encodeURIComponent(u.nickname || '')}`} className="font-black text-gray-900 text-sm leading-none hover:text-blue-600 hover:underline transition-color shrink-0" title={`Visiter le profil de ${u.nickname}`}>
                                                         {u.nickname || 'Anonyme'}
                                                     </Link>
+                                                    <div className="flex gap-1">
+                                                        {u.isInjured && <span className="text-[10px] animate-pulse cursor-help" title={`Mise à pied médicale : ${u.currentMedicalNote || 'Certificat valide'}`}>🚑</span>}
+                                                        {u.isVeteran && <span className="text-[10px] cursor-help" title="Vétéran : Libéré du service (Buyout payé)">🕊️</span>}
+                                                        {!u.isInjured && !u.isVeteran && <span className="text-[10px] opacity-20 grayscale" title="Apte au service">✅</span>}
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center gap-1 mt-1 cursor-help" title={`Statut moyen des apports par rapport à la consigne du jour`}>
                                                     <span className="text-[10px]">{ind.emoji}</span>
@@ -772,15 +899,15 @@ export default function ChallengeDashboard() {
                                                     <p className="text-[11px] font-bold text-white leading-relaxed">
                                                         {ev.eventType === 'STEAL' ? (
                                                             <>
-                                                                <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-orange-400 hover:underline">{ev.toUser?.nickname}</Link> a volé <span className="text-blue-400">[{ev.badge?.name}]</span> à <Link href={`/u/${encodeURIComponent(ev.fromUser?.nickname || '')}`} className="hover:underline">{ev.fromUser?.nickname}</Link>
+                                                                <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-orange-400 hover:underline">{ev.toUser?.nickname}</Link> a volé <span className="text-blue-400 cursor-pointer hover:bg-white/5 rounded px-1 transition-colors" onClick={() => setRewardDetail({ ...ev.badge, type: 'BADGE COMPÉTITIF', holder: ev.toUser?.nickname, achievedAt: ev.createdAt, currentValue: ev.newValue })}>[{ev.badge?.name}]</span> à <Link href={`/u/${encodeURIComponent(ev.fromUser?.nickname || '')}`} className="hover:underline">{ev.fromUser?.nickname}</Link>
                                                             </>
                                                         ) : ev.eventType === 'CLAIM' ? (
                                                             <>
-                                                                <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-green-400 hover:underline">{ev.toUser?.nickname}</Link> a obtenu <span className="text-blue-400">[{ev.badge?.name}]</span>
+                                                                <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-green-400 hover:underline">{ev.toUser?.nickname}</Link> a obtenu <span className="text-blue-400 cursor-pointer hover:bg-white/5 rounded px-1 transition-colors" onClick={() => setRewardDetail({ ...ev.badge, type: 'BADGE PERSONNEL', holder: ev.toUser?.nickname, achievedAt: ev.createdAt, currentValue: ev.newValue })}>[{ev.badge?.name}]</span>
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-yellow-400 hover:underline">{ev.toUser?.nickname}</Link> a débloqué <span className="text-blue-400">[{ev.badge?.name}]</span>
+                                                                <Link href={`/u/${encodeURIComponent(ev.toUser?.nickname || '')}`} className="text-yellow-400 hover:underline">{ev.toUser?.nickname}</Link> a débloqué <span className="text-blue-400 cursor-pointer hover:bg-white/5 rounded px-1 transition-colors" onClick={() => setRewardDetail({ ...ev.badge, type: 'ÉVÉNEMENT', holder: ev.toUser?.nickname, achievedAt: ev.createdAt, currentValue: ev.newValue })}>[{ev.badge?.name}]</span>
                                                             </>
                                                         )}
                                                     </p>
@@ -839,13 +966,24 @@ export default function ChallengeDashboard() {
                             <div className="space-y-3">
                                 {(data?.badges?.competitive?.danger || []).length > 0 ? (
                                     (data?.badges?.competitive?.danger || []).map((d: any) => (
-                                        <div key={d.badgeKey} className="bg-white p-4 rounded-3xl border border-red-100 flex justify-between items-center group shadow-sm hover:shadow-md transition-shadow">
+                                        <div
+                                            key={d.badgeKey}
+                                            onClick={() => setRewardDetail({
+                                                name: d.badgeName,
+                                                emoji: d.emoji,
+                                                description: "Ce badge est activement disputé. Il récompense l'excellence et peut changer de main à tout moment !",
+                                                type: 'COMPÉTITION DIRECTE',
+                                                holder: d.holder,
+                                                currentValue: d.currentValue
+                                            })}
+                                            className="bg-white p-4 rounded-3xl border border-red-100 flex justify-between items-center group shadow-sm hover:shadow-md transition-shadow cursor-pointer active:scale-[0.98]"
+                                        >
                                             <div className="flex items-center gap-4">
                                                 <span className="text-3xl sm:text-4xl group-hover:scale-110 transition-transform">{d.emoji}</span>
                                                 <div>
                                                     <p className="text-[10px] font-black text-slate-900 uppercase">{d.badgeName}</p>
                                                     <p className="text-[9px] font-bold text-slate-500 mt-1">
-                                                        Détenteur: <Link href={`/u/${encodeURIComponent(d.holder || '')}`} className="text-slate-900 hover:underline">{d.holder}</Link> ({d.currentValue})
+                                                        Détenteur: <Link href={`/u/${encodeURIComponent(d.holder || '')}`} onClick={(e) => e.stopPropagation()} className="text-slate-900 hover:underline font-black">{d.holder}</Link> ({d.currentValue})
                                                     </p>
                                                 </div>
                                             </div>

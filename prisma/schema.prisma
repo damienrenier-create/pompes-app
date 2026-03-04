@@ -25,6 +25,8 @@ model User {
   eventLikes BadgeEventLike[]
   potEvents PotEvent[]
   wallMessages WallMessage[]
+  statuses   UserStatus[]
+  statusLikes StatusLike[]
   medicalCertificates MedicalCertificate[]
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -153,4 +155,24 @@ model WallMessage {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+model UserStatus {
+  id        String   @id @default(cuid())
+  content   String
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  likes     StatusLike[]
+}
+
+model StatusLike {
+  id        String   @id @default(cuid())
+  statusId  String
+  status    UserStatus @relation(fields: [statusId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([statusId, userId])
 }

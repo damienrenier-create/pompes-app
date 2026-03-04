@@ -19,6 +19,13 @@ export default function AdminClient({ user }: { user: any }) {
     const [editingSet, setEditingSet] = useState<string | null>(null);
     const [editData, setEditData] = useState({ date: "", exercise: "", reps: "" });
 
+    // Profile state
+    const [profileData, setProfileData] = useState({
+        nickname: user.nickname,
+        isAdmin: user.isAdmin,
+        buyoutPaid: user.buyoutPaid,
+    });
+
     const deleteSet = async (setId: string) => {
         if (!confirm("Supprimer cette série ? Action irréversible.")) return;
         setLoading(setId);
@@ -80,6 +87,28 @@ export default function AdminClient({ user }: { user: any }) {
         setEditData({ date: set.date, exercise: set.exercise, reps: set.reps.toString() });
     };
 
+    const handleUpdateProfile = async () => {
+        setLoading("profile");
+        try {
+            const res = await fetch("/api/admin/update-user", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: user.id, ...profileData }),
+            });
+            if (res.ok) {
+                alert("Profil mis à jour !");
+                router.refresh();
+            } else {
+                const data = await res.json();
+                alert(data.message || "Erreur lors de la mise à jour");
+            }
+        } catch (e) {
+            alert("Erreur réseau");
+        } finally {
+            setLoading(null);
+        }
+    };
+
     const deleteFine = async (fineId: string) => {
         if (!confirm("Supprimer cette amende ?")) return;
         setLoading(fineId);
@@ -99,18 +128,36 @@ export default function AdminClient({ user }: { user: any }) {
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-slate-900 text-white p-6 rounded-3xl flex justify-between items-center shadow-xl">
-                <div>
-                    <h2 className="text-2xl font-black italic uppercase tracking-tighter">
-                        {user.nickname}
-                    </h2>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">
-                        ID: {user.id}
+            <div className="bg-slate-900 text-white p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
+                <div className="flex-1 w-full">
+                    <div className="flex items-center gap-4 mb-2">
+                        <input
+                            type="text"
+                            value={profileData.nickname}
+                            onChange={e => setProfileData({ ...profileData, nickname: e.target.value })}
+                            className="bg-white/10 text-xl font-black italic uppercase tracking-tighter rounded px-2 py-1 border border-white/20 outline-none focus:bg-white/20 transition-all w-full max-w-[200px]"
+                        />
+                        <div className="flex items-center gap-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase">Buyout:</label>
+                            <input
+                                type="checkbox"
+                                checked={profileData.buyoutPaid}
+                                onChange={e => setProfileData({ ...profileData, buyoutPaid: e.target.checked })}
+                                className="w-4 h-4 rounded border-white/20 bg-white/10"
+                            />
+                        </div>
+                    </div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                        ID: {user.id} • {user.email}
                     </p>
                 </div>
-                <div className="text-right">
-                    <p className="text-xs font-bold text-slate-400">{user.email}</p>
-                </div>
+                <button
+                    onClick={handleUpdateProfile}
+                    disabled={loading === "profile"}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest px-6 py-3 rounded-2xl shadow-lg transition-all disabled:opacity-50"
+                >
+                    {loading === "profile" ? "ÉDITION..." : "Appliquer Changements"}
+                </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

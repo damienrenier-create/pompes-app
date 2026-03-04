@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import RewardDetailSheet from "@/components/RewardDetailSheet"
 
 export default function ProfilePage() {
     const { data: session, update } = useSession()
@@ -18,6 +19,7 @@ export default function ProfilePage() {
     const [showMedForm, setShowMedForm] = useState(false)
     const [medDates, setMedDates] = useState({ start: "", end: "", note: "" })
     const [records, setRecords] = useState({ pushups: 0, pullups: 0, squats: 0 })
+    const [rewardDetail, setRewardDetail] = useState<any | null>(null)
 
     useEffect(() => {
         if (session === null) {
@@ -147,11 +149,26 @@ export default function ProfilePage() {
         )
     }
 
+    const isInjured = medicalCerts.some((c: any) => {
+        const today = new Date().toISOString().split('T')[0];
+        return today >= c.startDateISO && today <= c.endDateISO;
+    });
+
     return (
         <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8 mt-8 pb-20">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-6 sm:p-8">
-                    <h1 className="text-2xl font-bold text-gray-900 mb-6">Mon Profil</h1>
+                    <div className="flex justify-between items-center mb-6">
+                        <h1 className="text-2xl font-bold text-gray-900">Mon Profil</h1>
+                        <div className="flex gap-2">
+                            <Link href="/faq" className="p-2 text-gray-400 hover:text-blue-600 hover:bg-gray-50 rounded-xl transition-all border border-transparent hover:border-gray-100" title="Besoin d'aide ?">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+                            </Link>
+                            {isInjured && <span className="text-xl animate-pulse cursor-help" title="Tu es actuellement déclaré blessé (Mise à pied médicale)">🚑</span>}
+                            {buyoutPaid && <span className="text-xl cursor-help" title="Tu es Vétéran (Buyout payé, plus d'amendes futures)">🕊️</span>}
+                            {!isInjured && !buyoutPaid && <span className="text-xl opacity-20 grayscale" title="Tu es apte au service">✅</span>}
+                        </div>
+                    </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {message.text && (
@@ -297,20 +314,29 @@ export default function ProfilePage() {
                     <div className="mt-12 pt-8 border-t border-gray-100">
                         <h2 className="text-xl font-bold text-gray-900 mb-6">Mes Records Personnels</h2>
                         <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
-                                <div className="text-[10px] font-black text-blue-400 uppercase">Max Pompes</div>
-                                <div className="text-2xl font-black text-blue-600">{records.pushups || '--'}</div>
-                                <div className="text-[10px] text-gray-400 font-bold uppercase">Série</div>
+                            <div
+                                onClick={() => setRewardDetail({ name: "Record Personnel Pompes", emoji: "💪", description: "Ta meilleure performance en une seule série de pompes.", type: 'RECORD PERSONNEL', currentValue: records.pushups })}
+                                className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center cursor-pointer hover:bg-blue-100 transition-colors"
+                            >
+                                <p className="text-2xl mb-1">💪</p>
+                                <p className="text-xl font-black text-blue-700">{records.pushups}</p>
+                                <p className="text-[8px] font-bold text-blue-400 uppercase">Pompes</p>
                             </div>
-                            <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-center">
-                                <div className="text-[10px] font-black text-orange-400 uppercase">Max Tractions</div>
-                                <div className="text-2xl font-black text-orange-600">{records.pullups || '--'}</div>
-                                <div className="text-[10px] text-gray-400 font-bold uppercase">Série</div>
+                            <div
+                                onClick={() => setRewardDetail({ name: "Record Personnel Tractions", emoji: "🦍", description: "Ta meilleure performance en une seule série de tractions.", type: 'RECORD PERSONNEL', currentValue: records.pullups })}
+                                className="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-center cursor-pointer hover:bg-orange-100 transition-colors"
+                            >
+                                <p className="text-2xl mb-1">🦍</p>
+                                <p className="text-xl font-black text-orange-700">{records.pullups}</p>
+                                <p className="text-[8px] font-bold text-orange-400 uppercase">Tractions</p>
                             </div>
-                            <div className="bg-green-50 p-4 rounded-2xl border border-green-100 text-center">
-                                <div className="text-[10px] font-black text-green-400 uppercase">Max Squats</div>
-                                <div className="text-2xl font-black text-green-600">{records.squats || '--'}</div>
-                                <div className="text-[10px] text-gray-400 font-bold uppercase">Série</div>
+                            <div
+                                onClick={() => setRewardDetail({ name: "Record Personnel Squats", emoji: "🦵", description: "Ta meilleure performance en une seule série de squats.", type: 'RECORD PERSONNEL', currentValue: records.squats })}
+                                className="bg-green-50 p-4 rounded-2xl border border-green-100 text-center cursor-pointer hover:bg-green-100 transition-colors"
+                            >
+                                <p className="text-2xl mb-1">🦵</p>
+                                <p className="text-xl font-black text-green-700">{records.squats}</p>
+                                <p className="text-[8px] font-bold text-green-400 uppercase">Squats</p>
                             </div>
                         </div>
                         <p className="text-[10px] text-center text-gray-400 mt-6 italic">Retrouvez votre progression détaillée sur le <Link href="/" className="text-blue-500 font-black hover:underline">tableau de bord</Link>.</p>

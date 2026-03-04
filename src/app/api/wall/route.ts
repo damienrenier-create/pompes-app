@@ -31,7 +31,7 @@ export async function GET() {
         return NextResponse.json({ messages: formattedMessages });
     } catch (error: any) {
         console.error("Wall GET error:", error);
-        return NextResponse.json({ error: "Impossible de charger le mur" }, { status: 500 });
+        return NextResponse.json({ error: "Impossible de charger la Place publique" }, { status: 500 });
     }
 }
 
@@ -79,6 +79,6 @@ export async function POST(req: Request) {
         });
     } catch (error: any) {
         console.error("Wall POST error:", error);
-        return NextResponse.json({ error: "Impossible de publier sur le mur" }, { status: 500 });
+        return NextResponse.json({ error: "Impossible de publier sur la Place publique" }, { status: 500 });
     }
 }

@@ -47,13 +47,50 @@ export async function GET(req: Request) {
         })) as any[];
 
         // --- 2. Lazy Fine Calculation (Simplified/Optimized) ---
-        const fineDates = getDatesInRangeToToday(FINE_START_DATE).filter(d => d < today).slice(-7); // Only check last 7 days for speed
+        const fineDates = getDatesInRangeToToday(FINE_START_DATE).filter(d => d < today).slice(-7);
+
+        for (const u of allUsers) {
+            if (u.nickname === 'modo') continue;
+
+            for (const d of fineDates) {
+                const existingFine = u.fines?.find((f: any) => f.date === d);
+                if (existingFine) continue;
+
+                if (u.buyoutPaid && u.buyoutPaidAt) {
+                    const buyoutDay = formatDateISO(new Date(u.buyoutPaidAt));
+                    if (buyoutDay <= d) continue;
+                }
+
+                const hasCert = u.medicalCertificates?.some((c: any) => d >= c.startDateISO && d <= c.endDateISO);
+                if (hasCert) continue;
+
+                const daySets = u.sets?.filter((s: any) => s.date === d) || [];
+                const dayTotal = daySets.reduce((sum: number, s: any) => sum + s.reps, 0);
+                const req = getRequiredRepsForDate(d);
+
+                if (dayTotal < req) {
+                    try {
+                        await (prisma as any).fineRecord.create({
+                            data: {
+                                userId: u.id,
+                                date: d,
+                                amountEur: getFineAmountForMonth(d)
+                            }
+                        });
+                        if (!u.fines) u.fines = [];
+                        u.fines.push({ date: d, amountEur: getFineAmountForMonth(d), status: 'unpaid' });
+                    } catch (e) { }
+                }
+            }
+        }
 
 
         // Re-fetch current user after fines (or just use local state if lazy)
         const currentUser = allUsers.find(u => u.id === userId) as any;
 
-        // --- 3. Dashboard Aggregation ---
+        const allSprinterEvents = (prisma as any).badgeEvent ? await (prisma as any).badgeEvent.findMany({
+            where: { badgeKey: { startsWith: 'sprinter_' }, eventType: 'UNIQUE_AWARDED' }
+        }) : [];
 
         // --- 3. Dashboard Aggregation ---
 
@@ -64,7 +101,11 @@ export async function GET(req: Request) {
             const totalSquatsAllTime = uSets.filter((s: any) => s.exercise === "SQUAT").reduce((sum: number, s: any) => sum + s.reps, 0);
             const totalRepsAllTime = totalPushupsAllTime + totalPullupsAllTime + totalSquatsAllTime;
 
-            const dates30 = getDatesInRangeToToday(startDate30);
+            const isInjured = u.medicalCertificates?.some((c: any) => today >= c.startDateISO && today <= c.endDateISO);
+            const currentMedicalNote = u.medicalCertificates?.find((c: any) => today >= c.startDateISO && today <= c.endDateISO)?.note || null;
+            const isVeteran = u.buyoutPaid;
+
+            const dates30 = getDatesInRangeToToday(startDate30).filter(d => d < today);
             let completeCount = 0;
             let currentStreak = 0;
             let totalPerfectDays = 0;
@@ -73,24 +114,20 @@ export async function GET(req: Request) {
 
             for (let i = dates30.length - 1; i >= 0; i--) {
                 const d = dates30[i];
-                // Do NOT skip today for total reps, but we can skip it for streak/completion if preferred. 
-                // However, user says they "lost data", so we MUST ensure today is counted in totals.
-
                 const daySets = uSets.filter((s: any) => s.date === d);
                 const dayTotal = daySets.reduce((sum: number, s: any) => sum + s.reps, 0);
                 const req = getRequiredRepsForDate(d);
-                const isComp = dayTotal >= req;
+
+                // For rate/streak, injury or buyout counts as "completed" or "excused"
+                const hasExcise = isVeteran || (u.medicalCertificates?.some((c: any) => d >= c.startDateISO && d <= c.endDateISO));
+                const isComp = (dayTotal >= req) || hasExcise;
 
                 if (isComp) {
                     completeCount++;
-                    totalPerfectDays++;
+                    if (!hasExcise) totalPerfectDays++; // Excusé n'est pas "parfait" pour le badge
                     if (!streakBroken) currentStreak++;
                 } else {
-                    // Only break streak if it's NOT today, or if today is completely over.
-                    // To be safe and generous: if today isn't completed yet, we just don't increment the streak, but we don't break the backward chain.
-                    if (d !== today) {
-                        streakBroken = true;
-                    }
+                    streakBroken = true;
                 }
             }
 
@@ -98,6 +135,9 @@ export async function GET(req: Request) {
                 id: u.id,
                 nickname: u.nickname,
                 buyoutPaid: u.buyoutPaid,
+                isInjured,
+                isVeteran,
+                currentMedicalNote,
                 completionRate: (completeCount / Math.max(1, dates30.length)) * 100,
                 streakCurrent: currentStreak,
                 totalPerfectDays,
@@ -106,6 +146,7 @@ export async function GET(req: Request) {
                 totalPushupsAllTime,
                 totalPullupsAllTime,
                 totalSquatsAllTime,
+                sprinterCount: allSprinterEvents.filter((ev: any) => ev.toUserId === u.id).length,
                 repsToday: uSets.filter((s: any) => s.date === today).reduce((sum: number, s: any) => sum + s.reps, 0),
                 finesDueEur: (u.fines || []).filter((f: any) => f.status === "unpaid").reduce((sum: number, f: any) => sum + f.amountEur, 0),
                 potEventsEur: (u.potEvents || []).reduce((sum: number, e: any) => sum + e.amountEur, 0),
@@ -169,7 +210,13 @@ export async function GET(req: Request) {
             { id: "streak_30", type: "streak", threshold: 30, label: "30j d'Assiduité", emoji: "🔥" },
             { id: "streak_100", type: "streak", threshold: 100, label: "100j d'Assiduité", emoji: "👑" },
             { id: "perfect_10", type: "perfect", threshold: 10, label: "10 Jours Parfaits", emoji: "🎯" },
-            { id: "flex_50", type: "flex", threshold: 50, label: "Flex (+50 bonus)", emoji: "🚀" }
+            { id: "flex_50", type: "flex", threshold: 50, label: "Flex (+50 bonus)", emoji: "🚀" },
+            { id: "sprinter_1", type: "sprinter", threshold: 1, label: "Sprinteur 1j", emoji: "⚡" },
+            { id: "sprinter_5", type: "sprinter", threshold: 5, label: "Sprinteur 5j", emoji: "🏎️" },
+            { id: "sprinter_10", type: "sprinter", threshold: 10, label: "Sprinteur 10j", emoji: "🐆" },
+            { id: "sprinter_30", type: "sprinter", threshold: 30, label: "Sprinteur 30j", emoji: "🛸" },
+            { id: "sprinter_50", type: "sprinter", threshold: 50, label: "Sprinteur 50j", emoji: "🚀" },
+            { id: "sprinter_100", type: "sprinter", threshold: 100, label: "Sprinteur 100j", emoji: "🌌" }
         ];
 
         const currentUserLB = leaderboard.find(u => u.id === userId);
@@ -194,6 +241,8 @@ export async function GET(req: Request) {
                         return dayTotal >= (getRequiredRepsForDate(s.date) + 50);
                     });
                     if (hasFlex) hasIt = true;
+                } else if (trophy.type === "sprinter") {
+                    if (u.sprinterCount >= t.threshold) hasIt = true;
                 }
 
                 if (hasIt) earnedBy.push(u.nickname);
@@ -285,7 +334,7 @@ export async function GET(req: Request) {
                 toUser: { select: { nickname: true } },
                 likes: { select: { userId: true } }
             }
-        })) || [];
+        }))?.filter((ev: any) => ev.fromUserId !== ev.toUserId) || [];
 
         // Logic for "Badges in Danger" (Challengers #2)
         const dangerList: any[] = [];
