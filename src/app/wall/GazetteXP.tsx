@@ -16,44 +16,74 @@ function getTimeAgo(dateString: string) {
     return "à l'instant";
 }
 
-const LEVEL_UP_PHRASES = [
-    "Il a rejoint fièrement le rang des [{ANIMAL}] {REASON}, cumulant {XP} XP. Impressionnant ! 🚀",
-    "Faites place ! Un nouveau [{ANIMAL}] entre dans l'arène {REASON} avec {XP} XP. 🔥",
-    "La rumeur disait vrai : la bête s'est réveillée. Bienvenue au rang des [{ANIMAL}] ! {REASON} ({XP} XP). 💯",
-    "Même la gravité commence à le respecter. Il passe [{ANIMAL}] {REASON} pour {XP} XP ! 🤌",
-    "Ses abdos ont leur propre code postal maintenant qu'il est [{ANIMAL}]. {REASON} ({XP} XP). 💪",
-    "Incroyable ascension ! Transformé en [{ANIMAL}] {REASON}. Grosse prise de {XP} XP ! 🏆",
-    "Une machine, une vraie. Il s'élève au palier [{ANIMAL}] {REASON}. Bilan : {XP} XP ! ⚙️",
-    "Il l'a fait ! Promotion au grade animalier [{ANIMAL}] {REASON} ! ({XP} XP direct dans la poche). 🎒",
-    "La sueur paie. Majestueux comme un [{ANIMAL}], il valide ce niveau {REASON} ({XP} XP). 💧",
-    "Certains dorment, lui il évolue en [{ANIMAL}]. C'est {REASON} qui lui donne ces {XP} XP. 😴",
-    "On n'arrête plus le progrès ! Level UP en [{ANIMAL}] {REASON}. Une moisson de {XP} XP ! 🌾",
-    "Mains tremblantes, mais niveau validé ! Il est désormais [{ANIMAL}] {REASON} (+{XP} XP). 🫨",
-    "Le voici propulsé au statut de [{ANIMAL}] {REASON}. Une rafale de {XP} XP d'un coup ! 🌪️",
-    "Et boum ! Nouveau palier franchi. Il arbore l'icône du [{ANIMAL}] {REASON} et prend {XP} XP. 💥",
-    "Une régularité d'horloge suisse. Il devient [{ANIMAL}] {REASON} (+{XP} XP). ⏱️",
-    "Le règne du [{ANIMAL}] commence ! {REASON} lui offrant gentiment {XP} XP. 👑",
-    "Plus solide qu'un roc. Son rang de [{ANIMAL}] a été arraché {REASON} avec {XP} XP à la clé. 🪨",
-    "Alerte génie transpirant ! Il mute en [{ANIMAL}] {REASON} et encaisse {XP} XP. 🧬",
-    "Si près des étoiles... Il attrape le niveau [{ANIMAL}] {REASON} ! (+{XP} XP). 🌟",
-    "Rien ne l'arrête, même pas les courbatures. Grade de [{ANIMAL}] atteint {REASON} ({XP} XP) ! 🩸"
-];
+const PHRASES = {
+    FLYING: [
+        "Il s'envole littéralement vers la victoire ! En engrangeant {XP} XP ({REASON}), le voilà couronné [{ANIMAL}]. 🦅",
+        "En arrachant {XP} XP ({REASON}), il déploie enfin ses ailes et devient un magnifique [{ANIMAL}]. Direction les sommets ! 🌪️",
+        "Un bond dans les airs ! Propulsé par {XP} XP ({REASON}), sa mutation en [{ANIMAL}] laisse la concurrence au sol. 🪽"
+    ],
+    AGILE: [
+        "Son agilité a fait la différence : {XP} XP remportés ({REASON}) ! La concurrence est bluffée, le voilà [{ANIMAL}]. 🦊",
+        "L'instinct du prédateur a parlé. En sécurisant {XP} XP ({REASON}), le redoutable grade de [{ANIMAL}] est tombé. 🐾",
+        "Rapide, précis, mortel. Une rafale de {XP} XP ({REASON}) le fait passer au statut de [{ANIMAL}]. ⚡"
+    ],
+    HEAVY: [
+        "La force pure à l'état brut. Contre toute attente, il sécurise {XP} XP ({REASON}) et s'impose comme un [{ANIMAL}]. 🦍",
+        "Il écrase la compétition sous son poids. Une prise magistrale de {XP} XP ({REASON}) le propulse [{ANIMAL}] ! 🏔️",
+        "Un vrai rouleau compresseur ! Les {XP} XP accumulés ({REASON}) lui offrent le rang de [{ANIMAL}]. 💥"
+    ],
+    SMALL: [
+        "À force de persévérance et de sueur ! En validant {XP} XP ({REASON}), il décroche le tant attendu palier du [{ANIMAL}]. 🐜",
+        "Les petits efforts font les grandes légendes : avec {XP} XP engrangés ({REASON}), il évolue en [{ANIMAL}]. 🐛",
+        "Il a tissé sa toile patiemment... Et hop, {XP} XP de pris ({REASON}) ! Bienvenue dans le monde du [{ANIMAL}]. 🕸️"
+    ],
+    MARINE: [
+        "Il nage en plein succès ! Avec {XP} XP repêchés ({REASON}), le voilà transformé en [{ANIMAL}]. 🌊",
+        "Depuis les abysses, il jaillit pour s'emparer du niveau [{ANIMAL}], poussé par une vague de {XP} XP ({REASON}). 🦈",
+        "Un vrai monstre marin en approche ! Les {XP} XP récoltés ({REASON}) valident son grade de [{ANIMAL}]. 🫧"
+    ],
+    MYTHICAL: [
+        "Nous entrons dans les mythes fondateurs... En terrassant le jeu de {XP} XP ({REASON}), il transcende l'humanité pour devenir [{ANIMAL}]. 🔥",
+        "Une créature de légende est née. {XP} XP majestueux ({REASON}) le sacrent [{ANIMAL}]. Inclinons-nous tous. 🐉",
+        "Au-delà du réel ! Son explosion de {XP} XP ({REASON}) forge la légende du [{ANIMAL}]. 🌟"
+    ],
+    GENERIC: [
+        "Un cap décisif a été franchi ! En validant {XP} XP ({REASON}), il bluffe tout le monde et atteint le stade de [{ANIMAL}]. 🏆",
+        "Il fallait faire pencher la balance, c'est fait avec {XP} XP glanés ({REASON}) ! Bienvenue dans l'ère du [{ANIMAL}]. 📈"
+    ]
+};
 
 const LEVEL_DOWN_PHRASES = [
-    "Triste jour pour la patrie... La chute est dure : retour au rang des [{ANIMAL}] {REASON}. Perte sèche : {XP} XP. 📉",
-    "Coup dur pour le moral (et les pecs) ! Rétrogradé en [{ANIMAL}] {REASON}. Moins {XP} XP... 🚔",
-    "Alerte régression ! Le voilà rabaissé au rang de [{ANIMAL}] {REASON}. Tu nous dois {XP} XP. 🤡",
-    "Ouch. La gravité l'a rattrapé. Rétrogradation confirmée en [{ANIMAL}] {REASON}. Adieu {XP} XP. 📉",
-    "C'est la dégringolade... Adieu les sommets, rebonjour le [{ANIMAL}] {REASON}. Bilan : {XP} XP brûlés. 📉"
+    "Triste jour pour la patrie... La chute est dure : retour au rang des [{ANIMAL}] ({REASON}). Perte sèche : {XP} XP. 📉",
+    "Coup dur pour le moral (et les pecs) ! Rétrogradé en [{ANIMAL}] ({REASON}). Moins {XP} XP... 🚔",
+    "Alerte régression ! Le voilà rabaissé au rang de [{ANIMAL}] ({REASON}). Tu nous dois {XP} XP. 🤡",
+    "Ouch. La gravité l'a rattrapé. Rétrogradation confirmée en [{ANIMAL}] ({REASON}). Adieu {XP} XP. 📉"
 ];
 
+function getAnimalCategory(name: string) {
+    const n = name.toLowerCase();
+    if (["licorne", "basilic", "hydre", "dragon", "kraken", "léviathan", "phénix", "pégase", "griffon", "sphinx"].some(x => n.includes(x))) return "MYTHICAL";
+    if (["papillon", "oiseau", "martin", "chouette", "faucon", "corbeau", "hibou", "aigle", "condor", "autruche", "pélican", "albatros"].some(x => n.includes(x))) return "FLYING";
+    if (["poisson", "hippocampe", "murène", "manchot", "anaconda", "python", "cobra", "tortue", "alligator", "crocodile", "requin", "raie", "otarie", "phoque", "dauphin", "béluga", "narval", "orque", "cachalot", "baleine", "calmar", "pieuvre", "grenouille", "axolotl", "salamandre"].some(x => n.includes(x))) return "MARINE";
+    if (["sanglier", "cerf", "renne", "wapiti", "kangourou", "lion", "gorille", "panda", "rhinocéros", "hippopotame", "girafe", "bison", "yak", "éléphant"].some(x => n.includes(x))) return "HEAVY";
+    if (["moustique", "fourmi", "abeille", "mante", "scorpion", "mygale", "escargot", "capybara"].some(x => n.includes(x))) return "SMALL";
+    return "AGILE"; // Default for cats, dogs, monkeys, foxes, panthers etc.
+}
+
 function getPhrase(eventId: string, isLevelUp: boolean, animal: string, reason: string, xpDiff: string) {
-    const list = isLevelUp ? LEVEL_UP_PHRASES : LEVEL_DOWN_PHRASES;
+    let list = LEVEL_DOWN_PHRASES;
+
+    if (isLevelUp) {
+        const cat = getAnimalCategory(animal) as keyof typeof PHRASES;
+        list = [...PHRASES[cat], ...PHRASES.GENERIC];
+    }
+
     let hash = 0;
     for (let i = 0; i < eventId.length; i++) {
         hash = (hash << 5) - hash + eventId.charCodeAt(i);
         hash |= 0;
     }
+
     const template = list[Math.abs(hash) % list.length];
     return template
         .replace("{ANIMAL}", animal)
