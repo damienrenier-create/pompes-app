@@ -256,12 +256,19 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
                     else if (is1k) totalXP += 250;
                     else totalXP += 100; // default milestone
 
-                    // Survivant
                     if (def.key === "survivor_15d") totalXP += 500;
                     if (def.key === "survivor_30d") totalXP += 1500;
                     if (def.key === "survivor_60d") totalXP += 3500;
                     if (def.key === "survivor_90d") totalXP += 5000;
                     if (def.key === "survivor_120d") totalXP += 10000;
+
+                    // Sprinter
+                    if (def.key === "sprinter_1") totalXP += 100;
+                    if (def.key === "sprinter_5") totalXP += 250;
+                    if (def.key === "sprinter_10") totalXP += 500;
+                    if (def.key === "sprinter_30") totalXP += 1500;
+                    if (def.key === "sprinter_50") totalXP += 3000;
+                    if (def.key === "sprinter_100") totalXP += 7500;
                 } else if (def.type === "EVENT") {
                     totalXP += timeBonus; // + events give current month value
                 }

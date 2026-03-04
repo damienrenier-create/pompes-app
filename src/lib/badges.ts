@@ -92,6 +92,14 @@ export const BADGE_DEFINITIONS = [
 
     { key: "high_noon", name: "Midi Pile", emoji: "🕛", description: "Série à 12:00 pile", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_EXACT", threshold: 1, type: "MILESTONE" },
 
+    // Milestones (Heures) - Sprinter (Premier de la journée à atteindre la cible)
+    { key: "sprinter_1", name: "Le Bip-Bip", emoji: "🏃", description: "Premier à valider sa cible journalière", threshold: 1, isUnique: false, isTransferable: false, metricType: "SPRINTER_COUNT", exerciseScope: "ALL", type: "MILESTONE" },
+    { key: "sprinter_5", name: "Lièvre Rapide", emoji: "🐇", description: "5 fois premier à valider", threshold: 5, isUnique: false, isTransferable: false, metricType: "SPRINTER_COUNT", exerciseScope: "ALL", type: "MILESTONE" },
+    { key: "sprinter_10", name: "Éclair", emoji: "⚡", description: "10 fois premier à valider", threshold: 10, isUnique: false, isTransferable: false, metricType: "SPRINTER_COUNT", exerciseScope: "ALL", type: "MILESTONE" },
+    { key: "sprinter_30", name: "Sur Vitesse", emoji: "🏍️", description: "30 fois premier à valider", threshold: 30, isUnique: false, isTransferable: false, metricType: "SPRINTER_COUNT", exerciseScope: "ALL", type: "MILESTONE" },
+    { key: "sprinter_50", name: "Fusée", emoji: "🚀", description: "50 fois premier à valider", threshold: 50, isUnique: false, isTransferable: false, metricType: "SPRINTER_COUNT", exerciseScope: "ALL", type: "MILESTONE" },
+    { key: "sprinter_100", name: "Téléporté", emoji: "☄️", description: "100 fois premier à valider", threshold: 100, isUnique: false, isTransferable: false, metricType: "SPRINTER_COUNT", exerciseScope: "ALL", type: "MILESTONE" },
+
     // Seasonal / Events
     { key: "level_up", name: "Montée de Niveau", emoji: "⭐", description: "Est passé au niveau supérieur", isUnique: false, isTransferable: false, metricType: "LEVEL_UP", threshold: 0, type: "EVENT" },
     { key: "st_patrick", name: "La Saint-Patrick", emoji: "🍀", description: "S'être entraîné le 17 mars", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD", threshold: 17, type: "EVENT" },
@@ -125,6 +133,40 @@ export async function initBadges() {
 }
 
 export function getUserSummaries(allUsers: any[], allEvents: any[]) {
+    // 1. Calculate global sprinter stats (First to reach daily target)
+    const allDays = Array.from(new Set(allUsers.flatMap(u => (u.sets || []).map((s: any) => s.date)))).sort() as string[];
+    const sprinterCounts: Record<string, number> = {};
+    allUsers.forEach(u => sprinterCounts[u.id] = 0);
+
+    allDays.forEach(date => {
+        const req = getRequiredRepsForDate(date);
+        if (req <= 0) return;
+
+        let earliestTime = Infinity;
+        let winnerId: string | null = null;
+
+        allUsers.forEach(u => {
+            const daySets = (u.sets || []).filter((s: { date: string, createdAt: Date }) => s.date === date)
+                .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            let sum = 0;
+            for (const s of daySets) {
+                sum += s.reps;
+                if (sum >= req) {
+                    const time = new Date(s.createdAt).getTime();
+                    if (time < earliestTime) {
+                        earliestTime = time;
+                        winnerId = u.id;
+                    }
+                    break;
+                }
+            }
+        });
+
+        if (winnerId) {
+            sprinterCounts[winnerId]++;
+        }
+    });
+
     return allUsers.map((u: any) => {
         const sets = u.sets || [];
         const pushups = sets.filter((s: any) => s.exercise === "PUSHUP");
@@ -265,7 +307,7 @@ export function getUserSummaries(allUsers: any[], allEvents: any[]) {
                 acc.max = Math.max(acc.max, acc.cur);
                 return acc;
             }, { cur: 0, max: 0 }).max,
-
+            sprinterCount: sprinterCounts[u.id] || 0,
         };
     });
 }
@@ -373,6 +415,9 @@ export async function updateBadgesPostSave(userId: string) {
             continue;
         } else if (def.metricType === "STREAK_NO_FINES") {
             await Promise.all(summaries.map((s: any) => s.fineFreeStreak >= def.threshold! ? awardMilestone(s.id, def.key, s.fineFreeStreak) : Promise.resolve()));
+            continue;
+        } else if (def.metricType === "SPRINTER_COUNT") {
+            await Promise.all(summaries.map((s: any) => s.sprinterCount >= def.threshold! ? awardMilestone(s.id, def.key, 1) : Promise.resolve()));
             continue;
         } else if (def.metricType === "DATE_AWARD_HARD") {
             const dateMap: any = { 'st_patrick': '-03-17', 'dday_hero': '-06-06', 'easter_egg': '2026-04-05' };
