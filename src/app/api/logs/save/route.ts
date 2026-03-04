@@ -57,28 +57,49 @@ export async function POST(req: Request) {
         const allXpNew = calculateAllUsersXP(allUsersNew, badgeOwnershipsNew);
         const newXp = allXpNew.find(x => x.id === userId);
 
-        if (newXp && oldXp && newXp.level > oldXp.level) {
-            const xpGained = newXp.totalXP - oldXp.totalXP;
-            const dailyPushups = (sets.pushups || []).reduce((a: number, b: number) => a + Number(b), 0);
-            const dailyPullups = (sets.pullups || []).reduce((a: number, b: number) => a + Number(b), 0);
-            const dailySquats = (sets.squats || []).reduce((a: number, b: number) => a + Number(b), 0);
-            const totalDaily = dailyPushups + dailyPullups + dailySquats;
+        if (newXp && oldXp && newXp.level !== oldXp.level) {
+            const isLevelUp = newXp.level > oldXp.level;
+            const xpDiff = newXp.totalXP - oldXp.totalXP;
 
-            const reason = totalDaily > 0
-                ? `suite à un entraînement de ${totalDaily} reps`
-                : `grâce à la validation de badges ou bonus inactifs`;
+            let reasonsArr = [];
+
+            // Calculer d'où vient précisément la différence d'XP
+            if (newXp.details.rawXP !== oldXp.details.rawXP) {
+                const diff = newXp.details.rawXP - oldXp.details.rawXP;
+                reasonsArr.push(`un entraînement acharné (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
+            }
+            if (newXp.details.volumeBadgeXP !== oldXp.details.volumeBadgeXP) {
+                const diff = newXp.details.volumeBadgeXP - oldXp.details.volumeBadgeXP;
+                reasonsArr.push(`un badge débloqué (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
+            }
+            if (newXp.details.seriesBonusXP !== oldXp.details.seriesBonusXP) {
+                const diff = newXp.details.seriesBonusXP - oldXp.details.seriesBonusXP;
+                reasonsArr.push(`un bonus de régularité Flex (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
+            }
+            if (newXp.details.recordsXP !== oldXp.details.recordsXP) {
+                const diff = newXp.details.recordsXP - oldXp.details.recordsXP;
+                reasonsArr.push(`un record majestueux (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
+            }
+            if (newXp.details.finesXP !== oldXp.details.finesXP) {
+                const diff = newXp.details.finesXP - oldXp.details.finesXP;
+                reasonsArr.push(`une pénalité financière (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
+            }
+
+            const reason = reasonsArr.length > 0
+                ? `grâce à : ` + reasonsArr.join(", ")
+                : (isLevelUp ? `par l'opération du Saint-Esprit` : `à cause d'une modification de log`);
 
             await (prisma as any).badgeEvent.create({
                 data: {
-                    eventType: "LEVEL_UP",
-                    badgeKey: "level_up",
+                    eventType: isLevelUp ? "LEVEL_UP" : "LEVEL_DOWN",
+                    badgeKey: isLevelUp ? "level_up" : "level_down",
                     toUserId: userId,
                     newValue: newXp.level,
                     previousValue: oldXp.level,
                     metadata: JSON.stringify({
                         animal: newXp.animal,
                         emoji: newXp.emoji,
-                        xpGained,
+                        xpDiff: Math.round(xpDiff),
                         reason
                     })
                 }

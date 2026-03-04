@@ -16,9 +16,54 @@ function getTimeAgo(dateString: string) {
     return "à l'instant";
 }
 
+const LEVEL_UP_PHRASES = [
+    "Il a rejoint fièrement le rang des [{ANIMAL}] {REASON}, cumulant {XP} XP. Impressionnant ! 🚀",
+    "Faites place ! Un nouveau [{ANIMAL}] entre dans l'arène {REASON} avec {XP} XP. 🔥",
+    "La rumeur disait vrai : la bête s'est réveillée. Bienvenue au rang des [{ANIMAL}] ! {REASON} ({XP} XP). 💯",
+    "Même la gravité commence à le respecter. Il passe [{ANIMAL}] {REASON} pour {XP} XP ! 🤌",
+    "Ses abdos ont leur propre code postal maintenant qu'il est [{ANIMAL}]. {REASON} ({XP} XP). 💪",
+    "Incroyable ascension ! Transformé en [{ANIMAL}] {REASON}. Grosse prise de {XP} XP ! 🏆",
+    "Une machine, une vraie. Il s'élève au palier [{ANIMAL}] {REASON}. Bilan : {XP} XP ! ⚙️",
+    "Il l'a fait ! Promotion au grade animalier [{ANIMAL}] {REASON} ! ({XP} XP direct dans la poche). 🎒",
+    "La sueur paie. Majestueux comme un [{ANIMAL}], il valide ce niveau {REASON} ({XP} XP). 💧",
+    "Certains dorment, lui il évolue en [{ANIMAL}]. C'est {REASON} qui lui donne ces {XP} XP. 😴",
+    "On n'arrête plus le progrès ! Level UP en [{ANIMAL}] {REASON}. Une moisson de {XP} XP ! 🌾",
+    "Mains tremblantes, mais niveau validé ! Il est désormais [{ANIMAL}] {REASON} (+{XP} XP). 🫨",
+    "Le voici propulsé au statut de [{ANIMAL}] {REASON}. Une rafale de {XP} XP d'un coup ! 🌪️",
+    "Et boum ! Nouveau palier franchi. Il arbore l'icône du [{ANIMAL}] {REASON} et prend {XP} XP. 💥",
+    "Une régularité d'horloge suisse. Il devient [{ANIMAL}] {REASON} (+{XP} XP). ⏱️",
+    "Le règne du [{ANIMAL}] commence ! {REASON} lui offrant gentiment {XP} XP. 👑",
+    "Plus solide qu'un roc. Son rang de [{ANIMAL}] a été arraché {REASON} avec {XP} XP à la clé. 🪨",
+    "Alerte génie transpirant ! Il mute en [{ANIMAL}] {REASON} et encaisse {XP} XP. 🧬",
+    "Si près des étoiles... Il attrape le niveau [{ANIMAL}] {REASON} ! (+{XP} XP). 🌟",
+    "Rien ne l'arrête, même pas les courbatures. Grade de [{ANIMAL}] atteint {REASON} ({XP} XP) ! 🩸"
+];
+
+const LEVEL_DOWN_PHRASES = [
+    "Triste jour pour la patrie... La chute est dure : retour au rang des [{ANIMAL}] {REASON}. Perte sèche : {XP} XP. 📉",
+    "Coup dur pour le moral (et les pecs) ! Rétrogradé en [{ANIMAL}] {REASON}. Moins {XP} XP... 🚔",
+    "Alerte régression ! Le voilà rabaissé au rang de [{ANIMAL}] {REASON}. Tu nous dois {XP} XP. 🤡",
+    "Ouch. La gravité l'a rattrapé. Rétrogradation confirmée en [{ANIMAL}] {REASON}. Adieu {XP} XP. 📉",
+    "C'est la dégringolade... Adieu les sommets, rebonjour le [{ANIMAL}] {REASON}. Bilan : {XP} XP brûlés. 📉"
+];
+
+function getPhrase(eventId: string, isLevelUp: boolean, animal: string, reason: string, xpDiff: string) {
+    const list = isLevelUp ? LEVEL_UP_PHRASES : LEVEL_DOWN_PHRASES;
+    let hash = 0;
+    for (let i = 0; i < eventId.length; i++) {
+        hash = (hash << 5) - hash + eventId.charCodeAt(i);
+        hash |= 0;
+    }
+    const template = list[Math.abs(hash) % list.length];
+    return template
+        .replace("{ANIMAL}", animal)
+        .replace("{REASON}", reason)
+        .replace("{XP}", xpDiff);
+}
+
 export default async function GazetteXP() {
-    const levelUps = await (prisma as any).badgeEvent.findMany({
-        where: { eventType: "LEVEL_UP" },
+    const events = await (prisma as any).badgeEvent.findMany({
+        where: { eventType: { in: ["LEVEL_UP", "LEVEL_DOWN"] } },
         orderBy: { createdAt: "desc" },
         take: 3,
         include: {
@@ -28,9 +73,9 @@ export default async function GazetteXP() {
         }
     });
 
-    const isEmpty = !levelUps || levelUps.length === 0;
+    const isEmpty = !events || events.length === 0;
 
-    let displayEvents = levelUps;
+    let displayEvents = events;
 
     // S'il n'y a encore aucun événement de niveau enregistré en base de données, on génère un Top 3 rétroactif.
     if (isEmpty) {
@@ -47,11 +92,12 @@ export default async function GazetteXP() {
             id: `fallback-${userXP.id}`,
             toUser: { nickname: userXP.nickname },
             newValue: userXP.level,
-            createdAt: new Date(Date.now() - idx * 3600000).toISOString(), // Il y a quelques heures
+            eventType: "LEVEL_UP",
+            createdAt: new Date(Date.now() - idx * 3600000).toISOString(),
             metadata: JSON.stringify({
                 animal: userXP.animal,
                 emoji: userXP.emoji,
-                xpGained: userXP.totalXP,
+                xpDiff: Math.round(userXP.totalXP),
                 reason: "pour l'ensemble de sa carrière majestueuse"
             })
         }));
@@ -81,20 +127,23 @@ export default async function GazetteXP() {
                         const level = event.newValue;
                         const animal = metaDataObj?.animal || "Inconnu";
                         const emoji = metaDataObj?.emoji || "⭐";
-                        const xpGained = metaDataObj?.xpGained || 0;
+                        const xpDiff = metaDataObj?.xpDiff || metaDataObj?.xpGained || 0; // fallback backward compat
                         const reason = metaDataObj?.reason || "grâce à son assiduité";
                         const timeAgo = getTimeAgo(event.createdAt);
+                        const isLevelUp = event.eventType === "LEVEL_UP" || !event.eventType;
+
+                        const generatedPhrase = getPhrase(event.id, isLevelUp, animal, reason, xpDiff >= 0 ? `+${xpDiff.toLocaleString('fr-FR')}` : xpDiff.toLocaleString('fr-FR'));
 
                         return (
-                            <div key={event.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors">
+                            <div key={event.id} className={`${isLevelUp ? 'bg-white/5 border-white/10' : 'bg-red-900/10 border-red-500/20'} border rounded-2xl p-4 transition-colors`}>
                                 <div className="flex items-start gap-4">
                                     <div className="text-4xl mt-1 drop-shadow-md">
-                                        {emoji}
+                                        {isLevelUp ? emoji : '🚨'}
                                     </div>
                                     <div className="flex-1 space-y-1">
                                         <div className="flex justify-between items-start gap-2">
                                             <h3 className="font-bold text-white text-base leading-tight">
-                                                <span className="text-indigo-400 font-black">{nickname}</span> a atteint le niveau <span className="text-yellow-400 font-black text-lg">{level}</span> !
+                                                <span className={`${isLevelUp ? 'text-indigo-400' : 'text-red-400'} font-black`}>{nickname}</span> {isLevelUp ? 'a atteint le niveau' : 'a été rétrogradé au niveau'} <span className={`${isLevelUp ? 'text-yellow-400' : 'text-red-400'} font-black text-lg`}>{level}</span> !
                                             </h3>
                                             <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap bg-slate-800 px-2 py-1 rounded-full">
                                                 {timeAgo}
@@ -102,7 +151,7 @@ export default async function GazetteXP() {
                                         </div>
 
                                         <p className="text-sm text-slate-300">
-                                            Il a rejoint fièrement le rang des <span className="font-bold text-white uppercase tracking-tight">[{animal}]</span> {reason}, cumulant <span className="font-mono text-indigo-300 font-bold">+{xpGained.toLocaleString('fr-FR')} XP</span>. Impressionnant ! 🚀
+                                            {generatedPhrase}
                                         </p>
                                     </div>
                                 </div>
