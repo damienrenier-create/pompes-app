@@ -27,9 +27,7 @@ export default async function GazetteXP() {
         }
     });
 
-    if (!levelUps || levelUps.length === 0) {
-        return null;
-    }
+    const isEmpty = !levelUps || levelUps.length === 0;
 
     return (
         <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-xl border border-indigo-500/20 relative overflow-hidden mt-8">
@@ -44,46 +42,53 @@ export default async function GazetteXP() {
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    {levelUps.map((event: any, idx: number) => {
-                        let metaDataObj: any = null;
-                        try {
-                            if (event.metadata) metaDataObj = JSON.parse(event.metadata);
-                        } catch (e) { }
+                {isEmpty ? (
+                    <div className="text-center py-6 bg-white/5 border border-white/10 rounded-2xl">
+                        <p className="text-slate-400 font-medium italic">Le calme règne sur les rangs... Personne n'a encore atteint de niveau supérieur.</p>
+                        <p className="text-indigo-400 text-sm mt-2 font-bold">Sois le premier à faire les gros titres ! 🚀</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {levelUps.map((event: any, idx: number) => {
+                            let metaDataObj: any = null;
+                            try {
+                                if (event.metadata) metaDataObj = JSON.parse(event.metadata);
+                            } catch (e) { }
 
-                        const nickname = event.toUser?.nickname || "Inconnu";
-                        const level = event.newValue;
-                        const animal = metaDataObj?.animal || "Inconnu";
-                        const emoji = metaDataObj?.emoji || "⭐";
-                        const xpGained = metaDataObj?.xpGained || 0;
-                        const reason = metaDataObj?.reason || "grâce à son assiduité";
-                        const timeAgo = getTimeAgo(event.createdAt);
+                            const nickname = event.toUser?.nickname || "Inconnu";
+                            const level = event.newValue;
+                            const animal = metaDataObj?.animal || "Inconnu";
+                            const emoji = metaDataObj?.emoji || "⭐";
+                            const xpGained = metaDataObj?.xpGained || 0;
+                            const reason = metaDataObj?.reason || "grâce à son assiduité";
+                            const timeAgo = getTimeAgo(event.createdAt);
 
-                        return (
-                            <div key={event.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors">
-                                <div className="flex items-start gap-4">
-                                    <div className="text-4xl mt-1 drop-shadow-md">
-                                        {emoji}
-                                    </div>
-                                    <div className="flex-1 space-y-1">
-                                        <div className="flex justify-between items-start gap-2">
-                                            <h3 className="font-bold text-white text-base leading-tight">
-                                                <span className="text-indigo-400 font-black">{nickname}</span> a atteint le niveau <span className="text-yellow-400 font-black text-lg">{level}</span> !
-                                            </h3>
-                                            <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap bg-slate-800 px-2 py-1 rounded-full">
-                                                {timeAgo}
-                                            </span>
+                            return (
+                                <div key={event.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-colors">
+                                    <div className="flex items-start gap-4">
+                                        <div className="text-4xl mt-1 drop-shadow-md">
+                                            {emoji}
                                         </div>
+                                        <div className="flex-1 space-y-1">
+                                            <div className="flex justify-between items-start gap-2">
+                                                <h3 className="font-bold text-white text-base leading-tight">
+                                                    <span className="text-indigo-400 font-black">{nickname}</span> a atteint le niveau <span className="text-yellow-400 font-black text-lg">{level}</span> !
+                                                </h3>
+                                                <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap bg-slate-800 px-2 py-1 rounded-full">
+                                                    {timeAgo}
+                                                </span>
+                                            </div>
 
-                                        <p className="text-sm text-slate-300">
-                                            Il rejoint fièrement le rang des <span className="font-bold text-white uppercase tracking-tight">[{animal}]</span> {reason}, ce qui lui a rapporté <span className="font-mono text-indigo-300 font-bold">+{xpGained.toLocaleString('fr-FR')} XP</span>. Impressionnant ! 🚀
-                                        </p>
+                                            <p className="text-sm text-slate-300">
+                                                Il rejoint fièrement le rang des <span className="font-bold text-white uppercase tracking-tight">[{animal}]</span> {reason}, ce qui lui a rapporté <span className="font-mono text-indigo-300 font-bold">+{xpGained.toLocaleString('fr-FR')} XP</span>. Impressionnant ! 🚀
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     );
