@@ -88,19 +88,29 @@ export default async function GazetteXP() {
 
         const top3 = xpScores.sort((a, b) => b.totalXP - a.totalXP).slice(0, 3);
 
-        displayEvents = top3.map((userXP, idx) => ({
-            id: `fallback-${userXP.id}`,
-            toUser: { nickname: userXP.nickname },
-            newValue: userXP.level,
-            eventType: "LEVEL_UP",
-            createdAt: new Date(Date.now() - idx * 3600000).toISOString(),
-            metadata: JSON.stringify({
-                animal: userXP.animal,
-                emoji: userXP.emoji,
-                xpDiff: Math.round(userXP.totalXP),
-                reason: "pour l'ensemble de sa carrière majestueuse"
-            })
-        }));
+        displayEvents = top3.map((userXP, idx) => {
+            let reasonsArr = [];
+            if (userXP.details?.rawXP > 0) reasonsArr.push(`un entraînement acharné (+${Math.round(userXP.details.rawXP)} XP)`);
+            if (userXP.details?.volumeBadgeXP > 0) reasonsArr.push(`des badges de volume (+${Math.round(userXP.details.volumeBadgeXP)} XP)`);
+            if (userXP.details?.seriesBonusXP > 0) reasonsArr.push(`des bonus Flex (+${Math.round(userXP.details.seriesBonusXP)} XP)`);
+            if (userXP.details?.recordsXP > 0) reasonsArr.push(`de multiples records (+${Math.round(userXP.details.recordsXP)} XP)`);
+
+            const reason = reasonsArr.length > 0 ? `grâce à : ` + reasonsArr.join(", ") : "pour l'ensemble de sa carrière majestueuse";
+
+            return {
+                id: `fallback-${userXP.id}`,
+                toUser: { nickname: userXP.nickname },
+                newValue: userXP.level,
+                eventType: "LEVEL_UP",
+                createdAt: new Date(Date.now() - idx * 3600000).toISOString(),
+                metadata: JSON.stringify({
+                    animal: userXP.animal,
+                    emoji: userXP.emoji,
+                    xpDiff: Math.round(userXP.totalXP),
+                    reason: reason
+                })
+            };
+        });
     }
 
     return (
