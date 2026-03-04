@@ -208,7 +208,7 @@ export default function ChallengeDashboard() {
         setLocalSets({ ...localSets, [type]: newSets })
     }
 
-    const saveLogs = async () => {
+    const saveLogs = async (forceHonor: boolean = false) => {
         // Validation: prevent empty or <= 0 (A4)
         const allReps = [...localSets.pushups, ...localSets.pullups, ...localSets.squats].map(r => Number(r) || 0);
         const total = allReps.reduce((a, b) => a + b, 0);
@@ -233,7 +233,9 @@ export default function ChallengeDashboard() {
             return false;
         });
 
-        if (willEarnCompetitive && !honorChecked) {
+        const isHonorConfirmed = forceHonor === true || honorChecked;
+
+        if (willEarnCompetitive && !isHonorConfirmed) {
             setShowHonorPopup({ badge: null, type: 'pre-save' });
             return;
         }
@@ -493,7 +495,7 @@ export default function ChallengeDashboard() {
                         ))}
                     </div>
 
-                    <button onClick={saveLogs} disabled={saving} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-3xl shadow-xl transition-all disabled:opacity-50 uppercase tracking-widest text-sm transform active:scale-[0.98]">
+                    <button onClick={() => saveLogs()} disabled={saving} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-3xl shadow-xl transition-all disabled:opacity-50 uppercase tracking-widest text-sm transform active:scale-[0.98]">
                         {saving ? "Sauvegarde..." : "Valider la séance"}
                     </button>
 
@@ -886,21 +888,21 @@ export default function ChallengeDashboard() {
                                 <input
                                     type="checkbox"
                                     checked={honorChecked}
-                                    onChange={(e) => setHonorChecked(e.target.checked)}
+                                    onChange={(e) => {
+                                        setHonorChecked(e.target.checked);
+                                        if (e.target.checked) {
+                                            saveLogs(true);
+                                        }
+                                    }}
                                     className="w-6 h-6 rounded-lg border-2 border-gray-200 checked:bg-blue-600 transition-all font-black"
                                 />
                                 <span className="font-bold text-sm text-gray-600 group-hover:text-blue-600 transition-colors uppercase">Je le jure</span>
                             </label>
 
                             <div className="flex flex-col gap-2">
-                                <button
-                                    onClick={saveLogs}
-                                    disabled={!honorChecked}
-                                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-30 text-white font-black py-4 rounded-2xl shadow-xl transition-all uppercase tracking-widest text-xs"
-                                >
-                                    Valider la séance
+                                <button onClick={() => setShowHonorPopup(null)} className="w-full py-2 text-xs font-bold text-gray-400 uppercase hover:text-gray-600">
+                                    Fermer sans enregistrer
                                 </button>
-                                <button onClick={() => setShowHonorPopup(null)} className="w-full py-2 text-xs font-bold text-gray-400 uppercase hover:text-gray-600">Annuler</button>
                             </div>
                         </div>
                     </div>
