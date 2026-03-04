@@ -245,16 +245,17 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
                 } else if (def.type === "MILESTONE") {
                     // Weight them depending on the distance
                     // We just give +250 base, + progressively more depending on the milestone tier
-                    const is1k = def.key.endsWith("1k");
-                    const is10k = def.key.endsWith("10k");
-                    const is50k = def.key.endsWith("50k");
-                    const is100k = def.key.endsWith("100k");
-
-                    if (is100k) totalXP += 30000;
-                    else if (is50k) totalXP += 12000;
-                    else if (is10k) totalXP += 2000;
-                    else if (is1k) totalXP += 250;
-                    else totalXP += 100; // default milestone
+                    if (def.metricType === "MILESTONE_TOTAL" && def.threshold) {
+                        // NOUVEAU SYSTÈME EXPONENTIEL ET COHÉRENT : 25% du montant du seuil. 
+                        // Ex: 1k -> 250 XP | 5k -> 1 250 XP | 10k -> 2 500 XP | 100k -> 25 000 XP
+                        totalXP += Math.floor(def.threshold * 0.25);
+                    } else if (def.metricType === "MILESTONE_SET") {
+                        // Le Centurion
+                        totalXP += 100;
+                    } else {
+                        // time_award, survivor, etc form their base
+                        totalXP += 100;
+                    }
 
                     if (def.key === "survivor_15d") totalXP += 500;
                     if (def.key === "survivor_30d") totalXP += 1500;
