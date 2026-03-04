@@ -79,18 +79,18 @@ export const BADGE_DEFINITIONS = [
     { key: "mecene_100", name: "Sponsor Officiel", emoji: "💰", description: "100€ d'amendes payées", threshold: 100, isUnique: false, isTransferable: false, metricType: "FINES_AMOUNT", exerciseScope: "ALL", type: "MILESTONE" },
 
     // Milestones (Heures) - Lève-tôt (Avant 6h)
-    { key: "early_bird_1", name: "Lève-tôt (1j)", emoji: "🌅", description: "Série avant 6h du matin", isUnique: false, isTransferable: false, metricType: "TIME_AWARD", threshold: 1, type: "MILESTONE" },
-    { key: "early_bird_3", name: "Lève-tôt (3j)", emoji: "🐓", description: "3 j. consécutifs avant 6h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD", threshold: 3, type: "MILESTONE" },
-    { key: "early_bird_7", name: "Lève-tôt (7j)", emoji: "☀️", description: "7 j. consécutifs avant 6h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD", threshold: 7, type: "MILESTONE" },
-    { key: "early_bird_30", name: "Lève-tôt (30j)", emoji: "🌞", description: "30 j. consécutifs avant 6h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD", threshold: 30, type: "MILESTONE" },
+    { key: "early_bird_1", name: "Lève-tôt (1j)", emoji: "🌅", description: "Série avant 6h du matin", isUnique: false, isTransferable: false, metricType: "TIME_AWARD", threshold: 1, type: "MILESTONE", exerciseScope: "ALL" },
+    { key: "early_bird_3", name: "Lève-tôt (3j)", emoji: "🐓", description: "3 j. consécutifs avant 6h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD", threshold: 3, type: "MILESTONE", exerciseScope: "ALL" },
+    { key: "early_bird_7", name: "Lève-tôt (7j)", emoji: "☀️", description: "7 j. consécutifs avant 6h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD", threshold: 7, type: "MILESTONE", exerciseScope: "ALL" },
+    { key: "early_bird_30", name: "Lève-tôt (30j)", emoji: "🌞", description: "30 j. consécutifs avant 6h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD", threshold: 30, type: "MILESTONE", exerciseScope: "ALL" },
 
     // Milestones (Heures) - Oiseau de Nuit (Après 22h)
-    { key: "night_owl_1", name: "Oiseau de Nuit (1j)", emoji: "🦉", description: "Série après 22h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_LATE", threshold: 1, type: "MILESTONE" },
-    { key: "night_owl_3", name: "Oiseau de Nuit (3j)", emoji: "🦇", description: "3 j. consécutifs après 22h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_LATE", threshold: 3, type: "MILESTONE" },
-    { key: "night_owl_7", name: "Oiseau de Nuit (7j)", emoji: "🌙", description: "7 j. consécutifs après 22h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_LATE", threshold: 7, type: "MILESTONE" },
-    { key: "night_owl_30", name: "Oiseau de Nuit (30j)", emoji: "🧛", description: "30 j. consécutifs après 22h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_LATE", threshold: 30, type: "MILESTONE" },
+    { key: "night_owl_1", name: "Oiseau de Nuit (1j)", emoji: "🦉", description: "Série après 22h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_LATE", threshold: 1, type: "MILESTONE", exerciseScope: "ALL" },
+    { key: "night_owl_3", name: "Oiseau de Nuit (3j)", emoji: "🦇", description: "3 j. consécutifs après 22h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_LATE", threshold: 3, type: "MILESTONE", exerciseScope: "ALL" },
+    { key: "night_owl_7", name: "Oiseau de Nuit (7j)", emoji: "🌙", description: "7 j. consécutifs après 22h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_LATE", threshold: 7, type: "MILESTONE", exerciseScope: "ALL" },
+    { key: "night_owl_30", name: "Oiseau de Nuit (30j)", emoji: "🧛", description: "30 j. consécutifs après 22h", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_LATE", threshold: 30, type: "MILESTONE", exerciseScope: "ALL" },
 
-    { key: "high_noon", name: "Midi Pile", emoji: "🕛", description: "Série à 12:00 pile", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_EXACT", threshold: 1, type: "MILESTONE" },
+    { key: "high_noon", name: "Midi Pile", emoji: "🕛", description: "Série à 12:00 pile", isUnique: false, isTransferable: false, metricType: "TIME_AWARD_EXACT", threshold: 1, type: "MILESTONE", exerciseScope: "ALL" },
 
     // Milestones (Heures) - Sprinter (Premier de la journée à atteindre la cible)
     { key: "sprinter_1", name: "Le Bip-Bip", emoji: "🏃", description: "Premier à valider sa cible journalière", threshold: 1, isUnique: false, isTransferable: false, metricType: "SPRINTER_COUNT", exerciseScope: "ALL", type: "MILESTONE" },
@@ -101,14 +101,14 @@ export const BADGE_DEFINITIONS = [
     { key: "sprinter_100", name: "Téléporté", emoji: "☄️", description: "100 fois premier à valider", threshold: 100, isUnique: false, isTransferable: false, metricType: "SPRINTER_COUNT", exerciseScope: "ALL", type: "MILESTONE" },
 
     // Seasonal / Events
-    { key: "level_up", name: "Montée de Niveau", emoji: "⭐", description: "Est passé au niveau supérieur", isUnique: false, isTransferable: false, metricType: "LEVEL_UP", threshold: 0, type: "EVENT" },
-    { key: "st_patrick", name: "La Saint-Patrick", emoji: "🍀", description: "S'être entraîné le 17 mars", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD", threshold: 17, type: "EVENT" },
-    { key: "st_patrick_gold", name: "Saint-Patrick (Or)", emoji: "🏵️", description: "Avoir validé son objectif complet le 17 mars", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD_GOLD", threshold: 17, type: "EVENT" },
-    { key: "dday_hero", name: "Le Débarquement", emoji: "🎖️", description: "Avoir fait au moins une série le 06 juin", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD", threshold: 6, type: "EVENT" },
-    { key: "easter_egg", name: "Pâques", emoji: "🥚", description: "Avoir fait au moins une série le jour de Pâques", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD", threshold: 0, type: "EVENT" },
-    { key: "st_marvin", name: "Saint Marvin", emoji: "🔥", description: "Avoir égalé ou battu EMBI le 08 Mars", isUnique: false, isTransferable: false, metricType: "MARVIN_AWARD", threshold: 8, type: "EVENT" },
-    { key: "st_damien", name: "Saint Damien", emoji: "⚔️", description: "Fêter la Saint Damien (18 Décembre)", isUnique: false, isTransferable: false, metricType: "DATE_AWARD", threshold: 18, type: "EVENT" },
-    { key: "st_nicolas", name: "Saint Nicolas", emoji: "🍊", description: "Fêter la Saint Nicolas (06 Décembre)", isUnique: false, isTransferable: false, metricType: "DATE_AWARD", threshold: 6, type: "EVENT" },
+    { key: "level_up", name: "Montée de Niveau", emoji: "⭐", description: "Est passé au niveau supérieur", isUnique: false, isTransferable: false, metricType: "LEVEL_UP", threshold: 0, type: "EVENT", exerciseScope: "ALL" },
+    { key: "st_patrick", name: "La Saint-Patrick", emoji: "🍀", description: "S'être entraîné le 17 mars", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD", threshold: 17, type: "EVENT", exerciseScope: "ALL" },
+    { key: "st_patrick_gold", name: "Saint-Patrick (Or)", emoji: "🏵️", description: "Avoir validé son objectif complet le 17 mars", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD_GOLD", threshold: 17, type: "EVENT", exerciseScope: "ALL" },
+    { key: "dday_hero", name: "Le Débarquement", emoji: "🎖️", description: "Avoir fait au moins une série le 06 juin", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD", threshold: 6, type: "EVENT", exerciseScope: "ALL" },
+    { key: "easter_egg", name: "Pâques", emoji: "🥚", description: "Avoir fait au moins une série le jour de Pâques", isUnique: false, isTransferable: false, metricType: "DATE_AWARD_HARD", threshold: 0, type: "EVENT", exerciseScope: "ALL" },
+    { key: "st_marvin", name: "Saint Marvin", emoji: "🔥", description: "Avoir égalé ou battu EMBI le 08 Mars", isUnique: false, isTransferable: false, metricType: "MARVIN_AWARD", threshold: 8, type: "EVENT", exerciseScope: "ALL" },
+    { key: "st_damien", name: "Saint Damien", emoji: "⚔️", description: "Fêter la Saint Damien (18 Décembre)", isUnique: false, isTransferable: false, metricType: "DATE_AWARD", threshold: 18, type: "EVENT", exerciseScope: "ALL" },
+    { key: "st_nicolas", name: "Saint Nicolas", emoji: "🍊", description: "Fêter la Saint Nicolas (06 Décembre)", isUnique: false, isTransferable: false, metricType: "DATE_AWARD", threshold: 6, type: "EVENT", exerciseScope: "ALL" },
     { key: "april_fools_1", name: "Mégalo-Carcharodon", emoji: "🦈", description: "Top 1 volume du 1er avril", isUnique: false, isTransferable: false, metricType: "APRIL_FOOLS_TIER", threshold: 1, exerciseScope: "ALL", type: "EVENT" },
     { key: "april_fools_2", name: "Gros Brochet", emoji: "🐊", description: "Top 2 volume du 1er avril", isUnique: false, isTransferable: false, metricType: "APRIL_FOOLS_TIER", threshold: 2, exerciseScope: "ALL", type: "EVENT" },
     { key: "april_fools_3", name: "Saumon Agile", emoji: "🎏", description: "Top 3 volume du 1er avril", isUnique: false, isTransferable: false, metricType: "APRIL_FOOLS_TIER", threshold: 3, exerciseScope: "ALL", type: "EVENT" },
@@ -119,15 +119,16 @@ export const BADGE_DEFINITIONS = [
 
 export async function initBadges() {
     for (const def of BADGE_DEFINITIONS) {
+        const { type, ...dbDef } = def as any;
         await (prisma as any).badgeDefinition.upsert({
-            where: { key: def.key },
-            update: { ...def },
-            create: { ...def },
+            where: { key: dbDef.key },
+            update: { ...dbDef },
+            create: { ...dbDef },
         });
         await (prisma as any).badgeOwnership.upsert({
-            where: { badgeKey: def.key },
+            where: { badgeKey: dbDef.key },
             update: {},
-            create: { badgeKey: def.key },
+            create: { badgeKey: dbDef.key },
         });
     }
 }
@@ -225,9 +226,9 @@ export function getUserSummaries(allUsers: any[], allEvents: any[]) {
         // Steal count
         const stealCount = allEvents.filter((e: any) => e.toUserId === u.id).length;
 
-        // Fines (Assuming 2€ per fine)
-        const totalFinesCount = u.fines ? u.fines.length : 0;
-        const totalFinesAmount = totalFinesCount * 2;
+        // Fines (Only paid ones for Mécène badges)
+        const paidFines = u.fines ? u.fines.filter((f: any) => f.status === 'paid') : [];
+        const totalFinesAmount = paidFines.reduce((sum: number, f: any) => sum + (f.amountEur || 2), 0);
 
         const totalPushups = pushups.reduce((a: number, b: any) => a + b.reps, 0);
         const totalPullups = pullups.reduce((a: number, b: any) => a + b.reps, 0);
