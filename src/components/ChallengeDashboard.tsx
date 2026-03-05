@@ -75,9 +75,13 @@ interface DashboardData {
     }
 }
 
+function getLocalISO(d: Date = new Date()) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 const DEFAULT_DASHBOARD_DATA: DashboardData = {
-    todayISO: new Date().toISOString().split('T')[0],
-    selectedDateISO: new Date().toISOString().split('T')[0],
+    todayISO: getLocalISO(),
+    selectedDateISO: getLocalISO(),
     requiredReps: { selected: 10, today: 10 },
     setsSelected: { pushups: [], pullups: [], squats: [] },
     totalsSelected: { pushups: 0, pullups: 0, squats: 0, total: 0 },
@@ -212,7 +216,7 @@ export default function ChallengeDashboard() {
         }
     }
 
-    const getTodayISO = () => new Date().toISOString().split('T')[0]
+    const getTodayISO = () => getLocalISO()
 
     useEffect(() => {
         const tab = searchParams.get('tab')
@@ -383,7 +387,7 @@ export default function ChallengeDashboard() {
     for (let i = 0; i < 4; i++) {
         const d = new Date()
         d.setDate(d.getDate() - i)
-        const iso = d.toISOString().split('T')[0]
+        const iso = getLocalISO(d)
         allowedDates.push({ iso, label: i === 0 ? "Aujourd'hui" : i === 1 ? "Hier" : i === 2 ? "J-2" : "J-3" })
     }
 
