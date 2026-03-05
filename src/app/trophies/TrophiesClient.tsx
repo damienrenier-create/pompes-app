@@ -3,6 +3,9 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Trophy, Clock, Shield, History, Flame, TrendingUp, AlertTriangle, Crown, Star, ChevronRight } from "lucide-react"
+import RewardLink from "@/components/RewardLink"
+import RewardDetailSheet from "@/components/RewardDetailSheet"
+import { getXPForReward } from "@/lib/rewards"
 
 interface BadgeDef {
     key: string
@@ -80,6 +83,17 @@ export default function TrophiesClient({
     badgeOwnerships: Ownership[]
 }) {
     const [selectedBadge, setSelectedBadge] = useState<BadgeDef | null>(null)
+    const [selectedReward, setSelectedReward] = useState<any>(null)
+
+    const handleRewardClick = (badgeKey: string) => {
+        const def = badgeDefinitions.find(d => d.key === badgeKey)
+        if (def) {
+            setSelectedReward({
+                ...def,
+                xp: getXPForReward(badgeKey)
+            })
+        }
+    }
 
     // Progression logic
     const nextBadges = badgeDefinitions
@@ -163,15 +177,15 @@ export default function TrophiesClient({
                                 <p className="text-[11px] font-bold text-white leading-relaxed">
                                     {ev.eventType === 'STEAL' ? (
                                         <>
-                                            <Link href={`/u/${encodeURIComponent(ev.toUser.nickname)}`} className="text-orange-400 hover:underline">{ev.toUser.nickname}</Link> a volé <span className="text-blue-400">[{ev.badge.name}]</span> à <Link href={`/u/${encodeURIComponent(ev.fromUser?.nickname || '')}`} className="hover:underline">{ev.fromUser?.nickname}</Link>
+                                            <Link href={`/u/${encodeURIComponent(ev.toUser.nickname)}`} className="text-orange-400 hover:underline">{ev.toUser.nickname}</Link> a volé <RewardLink badge={ev.badge} xp={getXPForReward(ev.badge.key, ev.createdAt)} onClick={() => handleRewardClick(ev.badge.key)} /> à <Link href={`/u/${encodeURIComponent(ev.fromUser?.nickname || '')}`} className="hover:underline">{ev.fromUser?.nickname}</Link>
                                         </>
                                     ) : ev.eventType === 'CLAIM' ? (
                                         <>
-                                            <Link href={`/u/${encodeURIComponent(ev.toUser.nickname)}`} className="text-green-400 hover:underline">{ev.toUser.nickname}</Link> a obtenu <span className="text-blue-400">[{ev.badge.name}]</span>
+                                            <Link href={`/u/${encodeURIComponent(ev.toUser.nickname)}`} className="text-green-400 hover:underline">{ev.toUser.nickname}</Link> a obtenu <RewardLink badge={ev.badge} xp={getXPForReward(ev.badge.key, ev.createdAt)} onClick={() => handleRewardClick(ev.badge.key)} />
                                         </>
                                     ) : (
                                         <>
-                                            <Link href={`/u/${encodeURIComponent(ev.toUser.nickname)}`} className="text-yellow-400 hover:underline">{ev.toUser.nickname}</Link> a débloqué <span className="text-blue-400">[{ev.badge.name}]</span>
+                                            <Link href={`/u/${encodeURIComponent(ev.toUser.nickname)}`} className="text-yellow-400 hover:underline">{ev.toUser.nickname}</Link> a débloqué <RewardLink badge={ev.badge} xp={getXPForReward(ev.badge.key, ev.createdAt)} onClick={() => handleRewardClick(ev.badge.key)} />
                                         </>
                                     )}
                                 </p>
@@ -301,22 +315,17 @@ export default function TrophiesClient({
                 </div>
             </section>
 
-            {/* Modal Detail */}
-            {selectedBadge && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] w-full max-w-lg overflow-hidden p-8 space-y-6">
-                        <div className="flex flex-col items-center text-center space-y-4">
-                            <span className="text-7xl">{selectedBadge.emoji}</span>
-                            <div>
-                                <h2 className="text-2xl font-black text-white uppercase">{selectedBadge.name}</h2>
-                                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{earnedBadges.includes(selectedBadge.key) ? "Possédé ✅" : "Verrouillé 🔒"}</span>
-                            </div>
-                            <p className="text-slate-400 font-medium">{selectedBadge.description}</p>
-                        </div>
-                        <button onClick={() => setSelectedBadge(null)} className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-2xl uppercase tracking-widest">Fermer</button>
-                    </div>
-                </div>
-            )}
+            {/* Reward Detail Sheet */}
+            <RewardDetailSheet
+                detail={selectedReward || selectedBadge ? {
+                    ...(selectedReward || selectedBadge),
+                    xp: (selectedReward || selectedBadge).xp ?? getXPForReward((selectedReward || selectedBadge).key)
+                } : null}
+                onClose={() => {
+                    setSelectedReward(null)
+                    setSelectedBadge(null)
+                }}
+            />
         </div>
     )
 }

@@ -22,6 +22,9 @@ import {
 } from "lucide-react";
 import { SPECIAL_DAYS } from "@/config/specialDays";
 import { useRouter } from "next/navigation";
+import RewardLink from "@/components/RewardLink";
+import RewardDetailSheet from "@/components/RewardDetailSheet";
+import { getXPForReward } from "@/lib/rewards";
 
 // Replace date-fns with native Intl
 const formatTime = (dateStr: any) => {
@@ -69,9 +72,21 @@ export default function PantheonClient({
     const [localEvents, setLocalEvents] = useState(recentEvents);
     const router = useRouter();
 
+    const [selectedReward, setSelectedReward] = useState<any>(null);
+
     React.useEffect(() => {
         setLocalEvents(recentEvents);
     }, [recentEvents]);
+
+    const handleRewardClick = (badgeKey: string) => {
+        const def = badgeDefinitions.find(d => d.key === badgeKey);
+        if (def) {
+            setSelectedReward({
+                ...def,
+                xp: getXPForReward(badgeKey)
+            });
+        }
+    };
 
     const toggleLike = async (eventId: string, e: React.MouseEvent) => {
         e.preventDefault();
@@ -230,14 +245,14 @@ export default function PantheonClient({
                                                 </div>
                                                 <p className="text-sm text-slate-600 font-medium">
                                                     {event.eventType === 'STEAL' ? (
-                                                        <React.Fragment>Le badge <span className="font-bold text-slate-900">[{event.badge?.name}]</span> à {event.fromUser?.nickname}</React.Fragment>
+                                                        <React.Fragment>Le badge <RewardLink badge={event.badge} xp={getXPForReward(event.badge?.key, event.createdAt)} onClick={() => handleRewardClick(event.badge?.key)} /> à {event.fromUser?.nickname}</React.Fragment>
                                                     ) : isLevelUp ? (
                                                         <React.Fragment>
                                                             A atteint le Niveau <span className="font-black text-indigo-600">{event.newValue}</span>
                                                             {metaDataObj?.animal && <span className="text-xs font-bold text-slate-500 ml-1">[{metaDataObj.animal} {metaDataObj.emoji}]</span>}
                                                         </React.Fragment>
                                                     ) : (
-                                                        <React.Fragment>A débloqué la distinction <span className="font-bold text-slate-900">[{event.badge?.name}]</span></React.Fragment>
+                                                        <React.Fragment>A débloqué la distinction <RewardLink badge={event.badge} xp={getXPForReward(event.badge?.key, event.createdAt)} onClick={() => handleRewardClick(event.badge?.key)} /></React.Fragment>
                                                     )}
                                                 </p>
                                             </div>
@@ -571,14 +586,26 @@ export default function PantheonClient({
                                         </div>
                                     </div>
 
-                                    <div className="flex flex-wrap gap-2 group-hover:cursor-help" title="Gagnez ces badges pour décorer votre identité">
+                                    <div className="flex flex-wrap gap-2 group-hover:cursor-help" title="Cliquez pour les détails">
                                         {userOwnerships.slice(0, 3).map((bo, j) => (
-                                            <span key={j} className="text-lg bg-white/5 w-8 h-8 flex items-center justify-center rounded-lg hover:scale-125 transition-transform" title={bo.badge?.name}>{bo.badge?.emoji}</span>
+                                            <span
+                                                key={j}
+                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRewardClick(bo.badge?.key || ''); }}
+                                                className="text-lg bg-white/5 w-8 h-8 flex items-center justify-center rounded-lg hover:scale-125 transition-transform cursor-pointer"
+                                                title={bo.badge?.name}
+                                            >
+                                                {bo.badge?.emoji}
+                                            </span>
                                         ))}
                                         {Object.entries(virtuals).filter(([_, v]) => !!v).slice(0, 3).map(([key, _]: [string, any], j) => {
                                             const def = badgeDefinitions.find(d => d.key === key);
                                             return (
-                                                <span key={`v-${j}`} className="text-lg bg-white/5 w-8 h-8 flex items-center justify-center rounded-lg grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all hover:scale-125" title={def?.name}>
+                                                <span
+                                                    key={`v-${j}`}
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRewardClick(key); }}
+                                                    className="text-lg bg-white/5 w-8 h-8 flex items-center justify-center rounded-lg grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all hover:scale-125 cursor-pointer"
+                                                    title={def?.name}
+                                                >
                                                     {def?.emoji}
                                                 </span>
                                             );
@@ -647,6 +674,12 @@ export default function PantheonClient({
                     </div>
                 )
             }
+
+            {/* Reward Detail Sheet */}
+            <RewardDetailSheet
+                detail={selectedReward}
+                onClose={() => setSelectedReward(null)}
+            />
 
             <style jsx global>{`
                 .animate-spin-slow {

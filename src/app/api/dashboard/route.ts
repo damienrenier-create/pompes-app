@@ -12,7 +12,8 @@ import {
     isLastDayOfMonth
 } from "@/lib/challenge";
 import { SPECIAL_DAYS } from "@/config/specialDays";
-import { initBadges, BADGE_DEFINITIONS } from "@/lib/badges";
+import { initBadges } from "@/lib/badges";
+import { BADGE_DEFINITIONS } from "@/config/badges";
 import { calculateAllUsersXP } from "@/lib/xp";
 
 export const dynamic = "force-dynamic";

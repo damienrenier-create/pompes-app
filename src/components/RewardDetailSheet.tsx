@@ -1,8 +1,9 @@
 "use client"
 
-import { X, Trophy, Target, Calendar, User, Zap } from "lucide-react"
+import { X, Trophy, Target, Calendar, User, Zap, History as HistoryIcon } from "lucide-react"
 
 interface RewardDetail {
+    key?: string
     name: string
     emoji: string
     description: string
@@ -12,6 +13,7 @@ interface RewardDetail {
     previousValue?: number | string
     holder?: string
     type?: string
+    xp?: number
 }
 
 interface RewardDetailSheetProps {
@@ -64,6 +66,16 @@ export default function RewardDetailSheet({ detail, onClose }: RewardDetailSheet
 
                     {/* Meta Grid */}
                     <div className="grid grid-cols-2 gap-4">
+                        {detail.xp !== undefined && (
+                            <div className="col-span-2 bg-yellow-50/50 p-4 rounded-2xl border border-yellow-100/50 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Zap size={14} className="text-yellow-600" />
+                                    <span className="text-[9px] font-black text-yellow-600 uppercase tracking-wider">Valeur de Gloire</span>
+                                </div>
+                                <p className="font-black text-yellow-700">+{detail.xp} XP</p>
+                            </div>
+                        )}
+
                         {detail.holder && (
                             <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50">
                                 <div className="flex items-center gap-2 mb-1">
@@ -77,7 +89,7 @@ export default function RewardDetailSheet({ detail, onClose }: RewardDetailSheet
                         {(detail.currentValue !== undefined || detail.previousValue !== undefined) && (
                             <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100/50">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <Zap size={14} className="text-orange-500" />
+                                    <HistoryIcon size={14} className="text-orange-500" />
                                     <span className="text-[9px] font-black text-orange-400 uppercase tracking-wider">Record</span>
                                 </div>
                                 <p className="font-black text-orange-600">
@@ -92,7 +104,7 @@ export default function RewardDetailSheet({ detail, onClose }: RewardDetailSheet
                                     <Calendar size={14} className="text-gray-400" />
                                     <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider">Obtenu le</span>
                                 </div>
-                                <p className="font-bold text-gray-700">
+                                <p className="font-bold text-gray-700 text-sm">
                                     {new Date(detail.achievedAt).toLocaleDateString("fr-FR", { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                 </p>
                             </div>
@@ -100,21 +112,31 @@ export default function RewardDetailSheet({ detail, onClose }: RewardDetailSheet
                     </div>
 
                     {detail.condition && (
-                        <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100 flex items-start gap-3">
+                        <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 flex items-start gap-3">
                             <span className="text-lg">💡</span>
                             <div className="flex flex-col">
-                                <span className="text-[9px] font-black text-yellow-700 uppercase tracking-widest">Comment l'avoir ?</span>
-                                <p className="text-xs font-bold text-yellow-800 mt-0.5">{detail.condition}</p>
+                                <span className="text-[9px] font-black text-indigo-700 uppercase tracking-widest">Comment l'avoir ?</span>
+                                <p className="text-xs font-bold text-indigo-800 mt-0.5">{detail.condition}</p>
                             </div>
                         </div>
                     )}
 
-                    <button
-                        onClick={onClose}
-                        className="w-full bg-slate-900 hover:bg-black text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-slate-200 uppercase tracking-widest text-xs"
-                    >
-                        J'ai compris 🫡
-                    </button>
+                    <div className="flex gap-3 pt-2">
+                        <button
+                            onClick={onClose}
+                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black py-4 rounded-2xl transition-all uppercase tracking-widest text-xs"
+                        >
+                            Fermer
+                        </button>
+                        {detail.key && (
+                            <a
+                                href={`/faq?tab=catalogue#item-${detail.key}`}
+                                className="flex-[1.5] bg-slate-900 hover:bg-black text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-slate-200 uppercase tracking-widest text-xs text-center"
+                            >
+                                Voir dans la FAQ
+                            </a>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

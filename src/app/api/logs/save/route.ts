@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getAllowedEncodingDates } from "@/lib/challenge";
-import { BADGE_DEFINITIONS } from "@/lib/badges";
+import { initBadges } from "@/lib/badges";
+import { BADGE_DEFINITIONS } from "@/config/badges";
 import { updateBadgesPostSave } from "@/lib/badges";
 import { calculateAllUsersXP } from "@/lib/xp";
 

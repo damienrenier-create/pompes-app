@@ -1,7 +1,10 @@
 "use client"
 
-import React, { useState } from "react"
-import { Shield, Zap, Info, Trophy, Target, AlertCircle, Calculator } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { Shield, Zap, Info, Trophy, Target, AlertCircle, Calculator, BookOpen } from "lucide-react"
+import { BADGE_DEFINITIONS } from "@/config/badges"
+import { getXPForReward } from "@/lib/rewards"
+import { useSearchParams } from "next/navigation"
 
 // XP formula: 250 * (Lvl-1) + 50 * (Lvl-1)^2
 function getXPForLevel(level: number) {
@@ -59,8 +62,29 @@ const BELTS = [
     { min: 90, max: 100, name: "Living Legend", color: "text-indigo-600" },
 ];
 
-export default function FAQPage() {
-    const [activeTab, setActiveTab] = useState<'rules' | 'bestiary'>('rules');
+import { Suspense } from "react"
+
+function FAQContent() {
+    const searchParams = useSearchParams();
+    const initialTab = (searchParams.get('tab') as 'rules' | 'bestiary' | 'catalogue') || 'rules';
+    const [activeTab, setActiveTab] = useState<'rules' | 'bestiary' | 'catalogue'>(initialTab);
+
+    useEffect(() => {
+        const hash = window.location.hash;
+        if (hash.startsWith('#item-')) {
+            setActiveTab('catalogue');
+            setTimeout(() => {
+                const element = document.getElementById(hash.substring(1));
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    element.classList.add('ring-4', 'ring-indigo-500/30', 'border-indigo-500');
+                    setTimeout(() => {
+                        element.classList.remove('ring-4', 'ring-indigo-500/30', 'border-indigo-500');
+                    }, 3000);
+                }
+            }, 500);
+        }
+    }, [searchParams]);
 
     return (
         <main className="min-h-screen bg-gray-50 py-12 px-4 pb-24">
@@ -85,18 +109,25 @@ export default function FAQPage() {
                         className={`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'rules' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}
                     >
                         <Zap size={16} />
-                        Règles du Jeu
+                        Règles
                     </button>
                     <button
                         onClick={() => setActiveTab('bestiary')}
                         className={`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'bestiary' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}
                     >
                         <Shield size={16} />
-                        Le Bestiaire
+                        Bestiaire
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('catalogue')}
+                        className={`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${activeTab === 'catalogue' ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}
+                    >
+                        <BookOpen size={16} />
+                        Catalogue
                     </button>
                 </div>
 
-                {activeTab === 'rules' ? (
+                {activeTab === 'rules' && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
                         {/* Gain d'XP de base */}
                         <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 space-y-6">
@@ -151,7 +182,7 @@ export default function FAQPage() {
                             </div>
                         </section>
 
-                        {/* Badges */}
+                        {/* Valeurs des Badges */}
                         <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 space-y-6">
                             <div className="flex items-center gap-3 border-b border-gray-50 pb-4">
                                 <Trophy className="text-yellow-500" size={24} />
@@ -190,9 +221,11 @@ export default function FAQPage() {
                             </p>
                         </section>
                     </div>
-                ) : (
+                )}
+
+                {activeTab === 'bestiary' && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                        {/* La Loi d'Évolution */}
+                        {/* Evolution Formula */}
                         <section className="bg-indigo-900 text-white rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-8 opacity-10 text-8xl pointer-events-none italic font-black">f(x)</div>
                             <div className="relative z-10 space-y-4">
@@ -205,13 +238,13 @@ export default function FAQPage() {
                                         250(L-1) + 50(L-1)²
                                     </code>
                                     <p className="text-[10px] text-center font-bold uppercase tracking-widest mt-4 text-indigo-300">
-                                        Progression de l'XP cumulé requis pour atteindre le niveau L.
+                                        XP cumulé requis pour atteindre le niveau L.
                                     </p>
                                 </div>
                             </div>
                         </section>
 
-                        {/* Liste des Animaux */}
+                        {/* Animal List */}
                         <div className="space-y-12">
                             {BELTS.map((belt) => (
                                 <div key={belt.name} className="space-y-4">
@@ -219,7 +252,7 @@ export default function FAQPage() {
                                         <h3 className={`text-xl font-black uppercase italic tracking-tighter ${belt.color}`}>
                                             {belt.name}
                                         </h3>
-                                        <div className="h-px bg-gray-200 flex-1"></div>
+                                        <div className="h-px bg-gray-200 flex-1" />
                                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">
                                             Nv. {belt.min} - {belt.max}
                                         </span>
@@ -251,10 +284,96 @@ export default function FAQPage() {
                     </div>
                 )}
 
+                {activeTab === 'catalogue' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                        {/* Catalogue Header */}
+                        <section className="bg-indigo-600 text-white rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-8 opacity-10 text-8xl pointer-events-none italic font-black">100+</div>
+                            <div className="relative z-10 space-y-2">
+                                <h2 className="text-2xl font-black uppercase italic tracking-tighter">Catalogue des Récompenses</h2>
+                                <p className="text-indigo-100 font-bold text-sm">Découvrez comment débloquer chaque badge et la gloire qu'il rapporte.</p>
+                            </div>
+                        </section>
+
+                        {/* Catalogue Grid */}
+                        <div className="grid grid-cols-1 gap-12">
+                            {["COMPETITIVE", "LEGENDARY", "MILESTONE", "EVENT"].map(type => {
+                                const badges = BADGE_DEFINITIONS.filter(b => b.type === type);
+                                if (badges.length === 0) return null;
+
+                                return (
+                                    <div key={type} className="space-y-6">
+                                        <div className="flex items-center gap-4 px-2">
+                                            <h3 className="text-lg font-black uppercase italic tracking-tighter text-gray-900 flex items-center gap-2">
+                                                {type === "COMPETITIVE" && <Zap size={18} className="text-yellow-500" />}
+                                                {type === "LEGENDARY" && <Trophy size={18} className="text-indigo-500" />}
+                                                {type === "MILESTONE" && <Target size={18} className="text-green-500" />}
+                                                {type === "EVENT" && <Zap size={18} className="text-purple-500" />}
+                                                {type === "COMPETITIVE" ? "Badges Compétitifs" :
+                                                    type === "LEGENDARY" ? "Trophées Légendaires" :
+                                                        type === "MILESTONE" ? "Hauts Faits (Milestones)" : "Événements Spéciaux"}
+                                            </h3>
+                                            <div className="h-px bg-gray-200 flex-1" />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {badges.map(badge => {
+                                                const xp = getXPForReward(badge.key);
+                                                return (
+                                                    <div
+                                                        key={badge.key}
+                                                        id={`item-${badge.key}`}
+                                                        className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-all group scroll-mt-24"
+                                                    >
+                                                        <div className="flex items-start justify-between mb-4">
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="text-4xl group-hover:scale-110 transition-transform">{badge.emoji}</span>
+                                                                <div>
+                                                                    <h4 className="font-black text-gray-900 uppercase text-sm leading-tight italic">{badge.name}</h4>
+                                                                    <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-0.5">+{xp} XP</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-50 group-hover:bg-indigo-50/30 group-hover:border-indigo-100/50 transition-colors">
+                                                                <p className="text-xs font-bold text-gray-600 leading-relaxed italic mb-2">"{badge.description}"</p>
+                                                                <div className="flex items-start gap-2">
+                                                                    <Target size={12} className="text-indigo-400 mt-0.5 shrink-0" />
+                                                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight leading-none">Condition :</p>
+                                                                </div>
+                                                                <p className="text-[11px] font-black text-indigo-600 mt-1 pl-5">
+                                                                    {badge.condition || "Non spécifié"}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
                 <p className="text-center text-[10px] font-black text-gray-400 uppercase tracking-widest italic pb-12">
-                    Design & Logic by Pompes App Engine v2.0
+                    Design & Logic by Pompes App Engine v2.1
                 </p>
             </div>
         </main>
-    )
+    );
+}
+
+export default function FAQPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            </div>
+        }>
+            <FAQContent />
+        </Suspense>
+    );
 }

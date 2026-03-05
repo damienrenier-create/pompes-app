@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { BADGE_DEFINITIONS } from "@/lib/badges";
+import { BADGE_DEFINITIONS } from "@/config/badges";
 import TrophiesClient from "./TrophiesClient";
 
 export default async function TrophiesPage() {

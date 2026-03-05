@@ -3,7 +3,8 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import PantheonClient from "@/app/pantheon/PantheonClient";
-import { BADGE_DEFINITIONS, getUserSummaries } from "@/lib/badges";
+import { getUserSummaries } from "@/lib/badges";
+import { BADGE_DEFINITIONS } from "@/config/badges";
 import { getRequiredRepsForDate } from "@/lib/challenge";
 import { calculateAllUsersXP } from "@/lib/xp";
 

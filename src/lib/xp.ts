@@ -1,4 +1,5 @@
-import { BADGE_DEFINITIONS, getUserSummaries } from "./badges";
+import { getUserSummaries } from "./badges";
+import { BADGE_DEFINITIONS } from "@/config/badges";
 import { getRequiredRepsForDate } from "./challenge";
 
 export const XP_ANIMALS = [
@@ -136,20 +137,8 @@ export function calculateLevel(xp: number) {
     return lvl;
 }
 
-const MONTH_MULTIPLIERS = [
-    500, // Janvier (+500)
-    500, // Février
-    500, // Mars
-    650, // Avril
-    800, // Mai
-    1000, // Juin
-    1250, // Juillet
-    1500, // Aout
-    1800, // Septembre
-    2200, // Octobre
-    2600, // Novembre
-    3000  // Décembre
-];
+import { MONTH_MULTIPLIERS } from "./xp-constants";
+export { MONTH_MULTIPLIERS };
 
 export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
     const summaries = getUserSummaries(users, []);
@@ -296,7 +285,7 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
         // Details Breakdown for Gazette
         const repsXP = (pushups * 1) + (pullups * 3) + (squats * 1);
         const finesXP = (finesAmount * 50);
-        
+
         // Calculate Badge XP separately to match the logic above
         let badgesXP = 0;
         userBadges.forEach(b => {
@@ -317,18 +306,18 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
                     if (def.metricType === "MILESTONE_TOTAL" && def.threshold) badgesXP += Math.floor(def.threshold * 0.25);
                     else badgesXP += 100;
                     if (["survivor_15d", "survivor_30d", "survivor_60d", "survivor_90d", "survivor_120d", "sprinter_1", "sprinter_5", "sprinter_10", "sprinter_30", "sprinter_50", "sprinter_100"].includes(def.key)) {
-                         // Add extra if matching certain keys
-                         if (def.key === "survivor_15d") badgesXP += 500;
-                         if (def.key === "survivor_30d") badgesXP += 1500;
-                         if (def.key === "survivor_60d") badgesXP += 3500;
-                         if (def.key === "survivor_90d") badgesXP += 5000;
-                         if (def.key === "survivor_120d") badgesXP += 10000;
-                         if (def.key === "sprinter_1") badgesXP += 100;
-                         if (def.key === "sprinter_5") badgesXP += 250;
-                         if (def.key === "sprinter_10") badgesXP += 500;
-                         if (def.key === "sprinter_30") badgesXP += 1500;
-                         if (def.key === "sprinter_50") badgesXP += 3000;
-                         if (def.key === "sprinter_100") badgesXP += 7500;
+                        // Add extra if matching certain keys
+                        if (def.key === "survivor_15d") badgesXP += 500;
+                        if (def.key === "survivor_30d") badgesXP += 1500;
+                        if (def.key === "survivor_60d") badgesXP += 3500;
+                        if (def.key === "survivor_90d") badgesXP += 5000;
+                        if (def.key === "survivor_120d") badgesXP += 10000;
+                        if (def.key === "sprinter_1") badgesXP += 100;
+                        if (def.key === "sprinter_5") badgesXP += 250;
+                        if (def.key === "sprinter_10") badgesXP += 500;
+                        if (def.key === "sprinter_30") badgesXP += 1500;
+                        if (def.key === "sprinter_50") badgesXP += 3000;
+                        if (def.key === "sprinter_100") badgesXP += 7500;
                     }
                 } else if (def.type === "EVENT") badgesXP += timeBonus;
             }
