@@ -103,10 +103,10 @@ export default async function GazetteXP() {
     const session = await getServerSession(authOptions);
     const currentUserId = session?.user?.id;
 
-    const events = await (prisma as any).badgeEvent.findMany({
+    const rawEvents = await (prisma as any).badgeEvent.findMany({
         where: { eventType: { in: ["LEVEL_UP", "LEVEL_DOWN"] } },
         orderBy: { createdAt: "desc" },
-        take: 5,
+        take: 50,
         include: {
             toUser: {
                 select: { nickname: true }
@@ -114,6 +114,16 @@ export default async function GazetteXP() {
             likes: true
         }
     });
+
+    const seenUsers = new Set();
+    const events: any[] = [];
+    for (const e of rawEvents) {
+        if (!seenUsers.has(e.toUserId)) {
+            seenUsers.add(e.toUserId);
+            events.push(e);
+            if (events.length >= 5) break;
+        }
+    }
 
     const isEmpty = !events || events.length === 0;
 
