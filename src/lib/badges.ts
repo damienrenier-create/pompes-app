@@ -5,7 +5,7 @@ import { BADGE_DEFINITIONS } from "@/config/badges";
 
 export async function initBadges() {
     for (const def of BADGE_DEFINITIONS) {
-        const { type, ...dbDef } = def as any;
+        const { type, condition, ...dbDef } = def as any;
         await (prisma as any).badgeDefinition.upsert({
             where: { key: dbDef.key },
             update: { ...dbDef },
@@ -276,14 +276,14 @@ export async function updateBadgesPostSave(userId: string) {
                 }
             });
         } else if (def.metricType === "MILESTONE_SET") {
-            await Promise.all(summaries.map((s: any) => s.maxSetAll >= def.threshold! ? awardMilestone(s.id, def.key, 1) : Promise.resolve()));
+            for (const s of summaries) { if (s.maxSetAll >= def.threshold!) await awardMilestone(s.id, def.key, 1); }
             continue;
         } else if (def.metricType === "MILESTONE_TOTAL") {
             const scopeField = def.exerciseScope === "PUSHUPS" ? "totalPushups" : def.exerciseScope === "PULLUPS" ? "totalPullups" : def.exerciseScope === "SQUATS" ? "totalSquats" : "totalAll";
-            await Promise.all(summaries.map((s: any) => s[scopeField] >= def.threshold! ? awardMilestone(s.id, def.key, 1) : Promise.resolve()));
+            for (const s of summaries) { if (s[scopeField] >= def.threshold!) await awardMilestone(s.id, def.key, 1); }
             continue;
         } else if (def.metricType === "FINES_AMOUNT") {
-            await Promise.all(summaries.map((s: any) => s.totalFinesAmount >= def.threshold! ? awardMilestone(s.id, def.key, 1) : Promise.resolve()));
+            for (const s of summaries) { if (s.totalFinesAmount >= def.threshold!) await awardMilestone(s.id, def.key, 1); }
             continue;
         } else if (def.metricType === "TOTAL_FINES_AMOUNT") {
             summaries.forEach((s: any) => {
@@ -292,30 +292,30 @@ export async function updateBadgesPostSave(userId: string) {
                 }
             });
         } else if (def.metricType === "TIME_AWARD") {
-            await Promise.all(summaries.map((s: any) => s.earlyStreak >= (def.threshold || 1) ? awardMilestone(s.id, def.key, s.earlyStreak) : Promise.resolve()));
+            for (const s of summaries) { if (s.earlyStreak >= (def.threshold || 1)) await awardMilestone(s.id, def.key, s.earlyStreak); }
             continue;
         } else if (def.metricType === "TIME_AWARD_LATE") {
-            await Promise.all(summaries.map((s: any) => s.lateStreak >= (def.threshold || 1) ? awardMilestone(s.id, def.key, s.lateStreak) : Promise.resolve()));
+            for (const s of summaries) { if (s.lateStreak >= (def.threshold || 1)) await awardMilestone(s.id, def.key, s.lateStreak); }
             continue;
         } else if (def.metricType === "TIME_AWARD_EXACT") {
-            await Promise.all(summaries.map((s: any) => s.noonStreak >= (def.threshold || 1) ? awardMilestone(s.id, def.key, s.noonStreak) : Promise.resolve()));
+            for (const s of summaries) { if (s.noonStreak >= (def.threshold || 1)) await awardMilestone(s.id, def.key, s.noonStreak); }
             continue;
         } else if (def.metricType === "STREAK_NO_FINES") {
-            await Promise.all(summaries.map((s: any) => s.fineFreeStreak >= def.threshold! ? awardMilestone(s.id, def.key, s.fineFreeStreak) : Promise.resolve()));
+            for (const s of summaries) { if (s.fineFreeStreak >= def.threshold!) await awardMilestone(s.id, def.key, s.fineFreeStreak); }
             continue;
         } else if (def.metricType === "SPRINTER_COUNT") {
-            await Promise.all(summaries.map((s: any) => s.sprinterCount >= def.threshold! ? awardMilestone(s.id, def.key, 1) : Promise.resolve()));
+            for (const s of summaries) { if (s.sprinterCount >= def.threshold!) await awardMilestone(s.id, def.key, 1); }
             continue;
         } else if (def.metricType === "DATE_AWARD_HARD") {
             const dateMap: any = { 'st_patrick': '-03-17', 'dday_hero': '-06-06', 'easter_egg': '2026-04-05' };
-            await Promise.all(summaries.map((s: any) => {
+            for (const s of summaries) {
                 const target = dateMap[def.key];
-                return s.checkDatePlayed(target) ? awardMilestone(s.id, def.key, 1) : Promise.resolve();
-            }));
+                if (s.checkDatePlayed(target)) await awardMilestone(s.id, def.key, 1);
+            }
             continue;
         } else if (def.metricType === "DATE_AWARD_HARD_GOLD") {
             if (def.key === "st_patrick_gold") {
-                await Promise.all(summaries.map((s: any) => s.hasStPatrickGold() ? awardMilestone(s.id, def.key, 1) : Promise.resolve()));
+                for (const s of summaries) { if (s.hasStPatrickGold()) await awardMilestone(s.id, def.key, 1); }
             }
             continue;
         } else if (def.metricType === "MARVIN_AWARD") {
@@ -323,14 +323,14 @@ export async function updateBadgesPostSave(userId: string) {
             const embiReps = embi ? embi.getMarvinReps() : 0;
             // Only award if EMBI has reps, and others have >= EMBI reps (including EMBI himself)
             if (embiReps > 0) {
-                await Promise.all(summaries.map((s: any) => s.getMarvinReps() >= embiReps ? awardMilestone(s.id, def.key, 1) : Promise.resolve()));
+                for (const s of summaries) { if (s.getMarvinReps() >= embiReps) await awardMilestone(s.id, def.key, 1); }
             }
             continue;
         } else if (def.metricType === "DATE_AWARD") {
-            await Promise.all(summaries.map((s: any) => {
+            for (const s of summaries) {
                 const isAwarded = (def.key === 'st_damien' && s.hasStDamien) || (def.key === 'st_nicolas' && s.hasStNicolas);
-                return isAwarded ? awardMilestone(s.id, def.key, 1) : Promise.resolve();
-            }));
+                if (isAwarded) await awardMilestone(s.id, def.key, 1);
+            }
             continue;
         } else if (def.metricType === "APRIL_FOOLS_TIER") {
             // Evaluated explicitly on April 1st.

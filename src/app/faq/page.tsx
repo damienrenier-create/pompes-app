@@ -174,8 +174,14 @@ function FAQContent() {
                                     <div className="p-2 bg-indigo-200 rounded-xl text-indigo-700">🚀</div>
                                     <div>
                                         <h4 className="font-black text-indigo-900 uppercase text-sm">Surplus Flex (Exponentiel)</h4>
-                                        <p className="text-xs font-bold text-indigo-700 mt-1 leading-snug">
-                                            Chaque tranche de 10% de l'objectif au delà de la cible rapporte +1 XP/rep cumulé.
+                                        <p className="text-xs font-bold text-indigo-700 mt-1 leading-snug space-y-2">
+                                            <span>Le dépassement de l'objectif est récompensé par un bonus évolutif :</span>
+                                            <ul className="list-disc pl-4 mt-2 mb-1">
+                                                <li>Les premiers 10% au-dessus de l'objectif rapportent <strong>+1 XP par rep</strong>.</li>
+                                                <li>Les 10% suivants rapportent <strong>+2 XP par rep</strong>.</li>
+                                                <li>Les 10% d'après rapportent <strong>+3 XP par rep</strong>... etc.</li>
+                                            </ul>
+                                            <span className="block text-indigo-900 font-black text-[10px] uppercase mt-2">Plus tu dépasses l'objectif, plus chaque rep vaut cher.</span>
                                         </p>
                                     </div>
                                 </div>
@@ -192,10 +198,19 @@ function FAQContent() {
                                 <div className="p-5 border border-gray-100 rounded-3xl flex justify-between items-center group hover:bg-yellow-50 transition-colors">
                                     <div>
                                         <h4 className="font-black text-gray-900 uppercase tracking-tight">Badges Compétitifs 🏅</h4>
-                                        <p className="text-[10px] font-bold text-gray-500">Volables, portés pendant 1 mois</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="block font-black text-yellow-600 text-lg">+500 à +3000 XP</span>
+                                        <p className="text-[10px] font-bold text-gray-500 mb-2">Volables, le montant reçu évolue en cours d'année</p>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-black text-yellow-800 bg-yellow-100/50 p-3 rounded-xl">
+                                            <span>🔹 T1 : 500 XP</span>
+                                            <span>🔹 Apr : 650 XP</span>
+                                            <span>🔹 May : 800 XP</span>
+                                            <span>🔹 Jun : 1000 XP</span>
+                                            <span>🔹 Jul : 1250 XP</span>
+                                            <span>🔹 Aug : 1500 XP</span>
+                                            <span>🔹 Sep : 1800 XP</span>
+                                            <span>🔹 Oct : 2200 XP</span>
+                                            <span className="col-span-2 text-yellow-900">🔹 Nov : 2600 XP</span>
+                                            <span className="col-span-2 text-yellow-900">🔥 Dec : 3000 XP</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="p-5 border border-gray-100 rounded-3xl flex justify-between items-center group hover:bg-purple-50 transition-colors">

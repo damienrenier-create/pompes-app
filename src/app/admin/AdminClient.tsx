@@ -126,6 +126,34 @@ export default function AdminClient({ user }: { user: any }) {
         }
     };
 
+    const handleDeleteUser = async () => {
+        const confirm1 = confirm(`Êtes-vous sûr de vouloir supprimer définitivement le compte de ${user.nickname} ?`);
+        if (!confirm1) return;
+
+        const confirm2 = confirm(`RAPPEL : Cette action est IRREVERSIBLE. Tout l'historique sera effacé. Confirmer ?`);
+        if (!confirm2) return;
+
+        setLoading("delete-user");
+        try {
+            const res = await fetch("/api/admin/delete-user", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId: user.id }),
+            });
+            if (res.ok) {
+                alert("Utilisateur supprimé !");
+                router.push("/admin");
+            } else {
+                const data = await res.json();
+                alert(data.message || "Erreur lors de la suppression de l'utilisateur");
+            }
+        } catch (e) {
+            alert("Erreur réseau");
+        } finally {
+            setLoading(null);
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-slate-900 text-white p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
@@ -286,6 +314,21 @@ export default function AdminClient({ user }: { user: any }) {
                         )}
                     </div>
                 </section>
+            </div>
+
+            {/* DANGER ZONE */}
+            <div className="mt-12 bg-red-50/50 border border-red-100 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div>
+                    <h3 className="text-xl font-black text-red-900 uppercase italic tracking-tighter">Zone de Danger</h3>
+                    <p className="text-sm text-red-600 font-bold mt-1">La suppression est définitive et entrainera la perte de tout de l'historique et des badges du joueur.</p>
+                </div>
+                <button
+                    onClick={handleDeleteUser}
+                    disabled={loading === "delete-user"}
+                    className="bg-red-600 hover:bg-red-700 text-white font-black uppercase text-xs tracking-widest px-6 py-4 rounded-2xl shadow-lg transition-all disabled:opacity-50 whitespace-nowrap"
+                >
+                    {loading === "delete-user" ? "SUPPRESSION..." : "Supprimer le profil"}
+                </button>
             </div>
         </div>
     );
