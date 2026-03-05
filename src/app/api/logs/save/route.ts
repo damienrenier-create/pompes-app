@@ -52,76 +52,77 @@ export async function POST(req: Request) {
         // 3. Trigger badge calculation
         await updateBadgesPostSave(userId);
 
-        // 4. Check for Level Up (AFTER transaction & badges)
+        // 4. Check for Level Up/Down for ALL users (since badges could be stolen from others)
         const allUsersNew = await (prisma as any).user.findMany({ include: { sets: true } });
         const badgeOwnershipsNew = await (prisma as any).badgeOwnership.findMany();
         const allXpNew = calculateAllUsersXP(allUsersNew, badgeOwnershipsNew);
-        const newXp = allXpNew.find(x => x.id === userId);
 
-        if (newXp && oldXp && newXp.level !== oldXp.level) {
-            const isLevelUp = newXp.level > oldXp.level;
-            const xpDiff = newXp.totalXP - oldXp.totalXP;
+        for (const newXp of allXpNew) {
+            const oldXp = allXpOld.find((x: any) => x.id === newXp.id);
+            if (oldXp && newXp.level !== oldXp.level) {
+                const isLevelUp = newXp.level > oldXp.level;
+                const xpDiff = newXp.totalXP - oldXp.totalXP;
 
-            let reasonsArr = [];
+                let reasonsArr = [];
 
-            // Calculer d'où vient précisément la différence d'XP
-            if (newXp.details.repsXP !== oldXp.details.repsXP) {
-                const diff = newXp.details.repsXP - oldXp.details.repsXP;
-                reasonsArr.push(`un entraînement acharné (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
-            }
-            if (newXp.details.badgesXP !== oldXp.details.badgesXP) {
-                const diff = newXp.details.badgesXP - oldXp.details.badgesXP;
-                reasonsArr.push(`un badge débloqué (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
-            }
-            if (newXp.details.flexXP !== oldXp.details.flexXP) {
-                const diff = newXp.details.flexXP - oldXp.details.flexXP;
-                reasonsArr.push(`un bonus de régularité Flex (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
-            }
-            if (newXp.details.recordsXP !== oldXp.details.recordsXP) {
-                const diff = newXp.details.recordsXP - oldXp.details.recordsXP;
-                reasonsArr.push(`un record majestueux (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
-            }
-            if (newXp.details.finesXP !== oldXp.details.finesXP) {
-                const diff = newXp.details.finesXP - oldXp.details.finesXP;
-                reasonsArr.push(`une pénalité financière (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
-            }
+                if (newXp.details.repsXP !== oldXp.details.repsXP) {
+                    const diff = newXp.details.repsXP - oldXp.details.repsXP;
+                    reasonsArr.push(`un entraînement acharné (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
+                }
+                if (newXp.details.badgesXP !== oldXp.details.badgesXP) {
+                    const diff = newXp.details.badgesXP - oldXp.details.badgesXP;
+                    reasonsArr.push(`un trophée (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
+                }
+                if (newXp.details.flexXP !== oldXp.details.flexXP) {
+                    const diff = newXp.details.flexXP - oldXp.details.flexXP;
+                    reasonsArr.push(`un bonus de régularité Flex (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
+                }
+                if (newXp.details.recordsXP !== oldXp.details.recordsXP) {
+                    const diff = newXp.details.recordsXP - oldXp.details.recordsXP;
+                    reasonsArr.push(`un record majestueux (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
+                }
+                if (newXp.details.finesXP !== oldXp.details.finesXP) {
+                    const diff = newXp.details.finesXP - oldXp.details.finesXP;
+                    reasonsArr.push(`une pénalité financière (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
+                }
 
-            let culprit = null;
-            if (!isLevelUp) {
-                // Find who stole a badge recently from this user
-                const latestSteal = await (prisma as any).badgeEvent.findFirst({
-                    where: {
-                        toUserId: userId,
-                        eventType: "STEAL",
-                        createdAt: { gte: new Date(Date.now() - 60000) } // within last minute
-                    },
-                    include: { fromUser: { select: { nickname: true } } }
+                let culprit = null;
+                if (!isLevelUp) {
+                    const latestSteal = await (prisma as any).badgeEvent.findFirst({
+                        where: {
+                            toUserId: newXp.id,
+                            eventType: "STEAL",
+                            createdAt: { gte: new Date(Date.now() - 60000) }
+                        },
+                        include: { fromUser: { select: { nickname: true } } }
+                    });
+                    if (latestSteal?.fromUser) {
+                        culprit = latestSteal.fromUser.nickname;
+                    }
+                }
+
+                const reason = reasonsArr.length > 0
+                    ? `grâce à : ` + reasonsArr.join(", ")
+                    : (isLevelUp ? `par l'opération du Saint-Esprit` : `à cause d'une perte d'XP`);
+
+                // Create the event
+                await (prisma as any).badgeEvent.create({
+                    data: {
+                        eventType: isLevelUp ? "LEVEL_UP" : "LEVEL_DOWN",
+                        badgeKey: isLevelUp ? "level_up" : "level_down",
+                        toUserId: newXp.id,
+                        newValue: newXp.level,
+                        previousValue: oldXp.level,
+                        metadata: JSON.stringify({
+                            animal: newXp.animal,
+                            emoji: newXp.emoji,
+                            xpDiff: Math.round(xpDiff),
+                            reason,
+                            culprit
+                        })
+                    }
                 });
-                if (latestSteal?.fromUser) {
-                    culprit = latestSteal.fromUser.nickname;
-                }
             }
-
-            const reason = reasonsArr.length > 0
-                ? `grâce à : ` + reasonsArr.join(", ")
-                : (isLevelUp ? `par l'opération du Saint-Esprit` : `à cause d'une modification de log`);
-
-            await (prisma as any).badgeEvent.create({
-                data: {
-                    eventType: isLevelUp ? "LEVEL_UP" : "LEVEL_DOWN",
-                    badgeKey: isLevelUp ? "level_up" : "level_down",
-                    toUserId: userId,
-                    newValue: newXp.level,
-                    previousValue: oldXp.level,
-                    metadata: JSON.stringify({
-                        animal: newXp.animal,
-                        emoji: newXp.emoji,
-                        xpDiff: Math.round(xpDiff),
-                        reason,
-                        culprit
-                    })
-                }
-            });
         }
 
         return NextResponse.json({ message: "Séries enregistrées ✅" });
