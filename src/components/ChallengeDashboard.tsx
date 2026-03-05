@@ -443,7 +443,8 @@ export default function ChallengeDashboard() {
                             </div>
                             <div className="text-right flex flex-col items-end gap-1">
                                 <span className="text-white font-black text-xl tracking-tight">Lv. {data.xp.currentUser.level}</span>
-                                <Link href="/faq" className="text-indigo-400 p-1 hover:bg-white/10 rounded-lg transition-colors" title="Comment ça marche ?">
+                                <Link href="/faq" className="flex items-center gap-1.5 text-indigo-400 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl transition-all group" title="Comment ça marche ?">
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Guide</span>
                                     <HelpCircle size={14} />
                                 </Link>
                             </div>

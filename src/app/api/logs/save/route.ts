@@ -64,16 +64,16 @@ export async function POST(req: Request) {
             let reasonsArr = [];
 
             // Calculer d'où vient précisément la différence d'XP
-            if (newXp.details.rawXP !== oldXp.details.rawXP) {
-                const diff = newXp.details.rawXP - oldXp.details.rawXP;
+            if (newXp.details.repsXP !== oldXp.details.repsXP) {
+                const diff = newXp.details.repsXP - oldXp.details.repsXP;
                 reasonsArr.push(`un entraînement acharné (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
             }
-            if (newXp.details.volumeBadgeXP !== oldXp.details.volumeBadgeXP) {
-                const diff = newXp.details.volumeBadgeXP - oldXp.details.volumeBadgeXP;
+            if (newXp.details.badgesXP !== oldXp.details.badgesXP) {
+                const diff = newXp.details.badgesXP - oldXp.details.badgesXP;
                 reasonsArr.push(`un badge débloqué (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
             }
-            if (newXp.details.seriesBonusXP !== oldXp.details.seriesBonusXP) {
-                const diff = newXp.details.seriesBonusXP - oldXp.details.seriesBonusXP;
+            if (newXp.details.flexXP !== oldXp.details.flexXP) {
+                const diff = newXp.details.flexXP - oldXp.details.flexXP;
                 reasonsArr.push(`un bonus de régularité Flex (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
             }
             if (newXp.details.recordsXP !== oldXp.details.recordsXP) {
@@ -83,6 +83,22 @@ export async function POST(req: Request) {
             if (newXp.details.finesXP !== oldXp.details.finesXP) {
                 const diff = newXp.details.finesXP - oldXp.details.finesXP;
                 reasonsArr.push(`une pénalité financière (${diff > 0 ? '+' : ''}${Math.round(diff)} XP)`);
+            }
+
+            let culprit = null;
+            if (!isLevelUp) {
+                // Find who stole a badge recently from this user
+                const latestSteal = await (prisma as any).badgeEvent.findFirst({
+                    where: {
+                        toUserId: userId,
+                        eventType: "STEAL",
+                        createdAt: { gte: new Date(Date.now() - 60000) } // within last minute
+                    },
+                    include: { fromUser: { select: { nickname: true } } }
+                });
+                if (latestSteal?.fromUser) {
+                    culprit = latestSteal.fromUser.nickname;
+                }
             }
 
             const reason = reasonsArr.length > 0
@@ -100,7 +116,8 @@ export async function POST(req: Request) {
                         animal: newXp.animal,
                         emoji: newXp.emoji,
                         xpDiff: Math.round(xpDiff),
-                        reason
+                        reason,
+                        culprit
                     })
                 }
             });

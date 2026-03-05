@@ -115,6 +115,7 @@ export const BADGE_DEFINITIONS = [
     { key: "april_fools_4", name: "Truite Commune", emoji: "🐟", description: "Top 4 volume du 1er avril", isUnique: false, isTransferable: false, metricType: "APRIL_FOOLS_TIER", threshold: 4, exerciseScope: "ALL", type: "EVENT" },
     { key: "april_fools_5", name: "Petit Gardon", emoji: "🐡", description: "Top 5 volume du 1er avril", isUnique: false, isTransferable: false, metricType: "APRIL_FOOLS_TIER", threshold: 5, exerciseScope: "ALL", type: "EVENT" },
     { key: "april_fools_6", name: "Minuscule Sardine", emoji: "🐠", description: "Top 6 (ou pire) du 1er avril", isUnique: false, isTransferable: false, metricType: "APRIL_FOOLS_TIER", threshold: 6, exerciseScope: "ALL", type: "EVENT" },
+    { key: "level_down", name: "Rétrogradation", emoji: "🚨", description: "Est redescendu d'un niveau", isUnique: false, isTransferable: false, metricType: "LEVEL_DOWN", threshold: 0, type: "EVENT", exerciseScope: "ALL" },
 ];
 
 export async function initBadges() {

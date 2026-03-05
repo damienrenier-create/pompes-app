@@ -1,6 +1,9 @@
 import prisma from "@/lib/prisma";
 import React from "react";
 import { calculateAllUsersXP } from "@/lib/xp";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
+import GazetteLikeButton from "./GazetteLikeButton";
 
 function getTimeAgo(dateString: string) {
     const date = new Date(dateString);
@@ -54,10 +57,12 @@ const PHRASES = {
 };
 
 const LEVEL_DOWN_PHRASES = [
-    "Triste jour pour la patrie... La chute est dure : retour au rang des [{ANIMAL}] ({REASON}). Perte sèche : {XP} XP. 📉",
-    "Coup dur pour le moral (et les pecs) ! Rétrogradé en [{ANIMAL}] ({REASON}). Moins {XP} XP... 🚔",
-    "Alerte régression ! Le voilà rabaissé au rang de [{ANIMAL}] ({REASON}). Tu nous dois {XP} XP. 🤡",
-    "Ouch. La gravité l'a rattrapé. Rétrogradation confirmée en [{ANIMAL}] ({REASON}). Adieu {XP} XP. 📉"
+    "Triste jour pour la patrie... La chute est dure : retour au rang des [{ANIMAL}] ({REASON}). Perte sèche : {XP} XP. 📉{CULPRIT}",
+    "Coup dur pour le moral (et les pecs) ! Rétrogradé en [{ANIMAL}] ({REASON}). Moins {XP} XP... 🚔{CULPRIT}",
+    "Alerte régression ! Le voilà rabaissé au rang de [{ANIMAL}] ({REASON}). Tu nous dois {XP} XP. 🤡{CULPRIT}",
+    "Ouch. La gravité l'a rattrapé. Rétrogradation confirmée en [{ANIMAL}] ({REASON}). Adieu {XP} XP. 📉{CULPRIT}",
+    "C'est la dégringolade ! {REASON} l'envoie direct chez les [{ANIMAL}]. - {XP} XP. 🏹{CULPRIT}",
+    "Victime d'un vol manifeste ? En tout cas, c'est un retour à la case [{ANIMAL}] ({REASON}). 💸{CULPRIT}"
 ];
 
 function getAnimalCategory(name: string) {
@@ -70,7 +75,7 @@ function getAnimalCategory(name: string) {
     return "AGILE"; // Default for cats, dogs, monkeys, foxes, panthers etc.
 }
 
-function getPhrase(eventId: string, isLevelUp: boolean, animal: string, reason: string, xpDiff: string) {
+function getPhrase(eventId: string, isLevelUp: boolean, animal: string, reason: string, xpDiff: string, culprit?: string) {
     let list = LEVEL_DOWN_PHRASES;
 
     if (isLevelUp) {
@@ -85,21 +90,28 @@ function getPhrase(eventId: string, isLevelUp: boolean, animal: string, reason: 
     }
 
     const template = list[Math.abs(hash) % list.length];
+    const culpritText = culprit ? `\n\n**Voleur identifié :** @${culprit} 🦝` : "";
+
     return template
         .replace("{ANIMAL}", animal)
         .replace("{REASON}", reason)
-        .replace("{XP}", xpDiff);
+        .replace("{XP}", xpDiff)
+        .replace("{CULPRIT}", culpritText);
 }
 
 export default async function GazetteXP() {
+    const session = await getServerSession(authOptions);
+    const currentUserId = session?.user?.id;
+
     const events = await (prisma as any).badgeEvent.findMany({
         where: { eventType: { in: ["LEVEL_UP", "LEVEL_DOWN"] } },
         orderBy: { createdAt: "desc" },
-        take: 3,
+        take: 5,
         include: {
             toUser: {
                 select: { nickname: true }
-            }
+            },
+            likes: true
         }
     });
 
@@ -169,10 +181,11 @@ export default async function GazetteXP() {
                         const emoji = metaDataObj?.emoji || "⭐";
                         const xpDiff = metaDataObj?.xpDiff || metaDataObj?.xpGained || 0; // fallback backward compat
                         const reason = metaDataObj?.reason || "grâce à son assiduité";
+                        const culprit = metaDataObj?.culprit;
                         const timeAgo = getTimeAgo(event.createdAt);
                         const isLevelUp = event.eventType === "LEVEL_UP" || !event.eventType;
 
-                        const generatedPhrase = getPhrase(event.id, isLevelUp, animal, reason, xpDiff >= 0 ? `+${xpDiff.toLocaleString('fr-FR')}` : xpDiff.toLocaleString('fr-FR'));
+                        const generatedPhrase = getPhrase(event.id, isLevelUp, animal, reason, xpDiff >= 0 ? `+${xpDiff.toLocaleString('fr-FR')}` : xpDiff.toLocaleString('fr-FR'), culprit);
 
                         return (
                             <div key={event.id} className={`${isLevelUp ? 'bg-white/5 border-white/10' : 'bg-red-900/10 border-red-500/20'} border rounded-2xl p-4 transition-colors`}>
@@ -193,6 +206,14 @@ export default async function GazetteXP() {
                                         <p className="text-sm text-slate-300">
                                             {generatedPhrase}
                                         </p>
+
+                                        <div className="pt-2 flex justify-end">
+                                            <GazetteLikeButton
+                                                eventId={event.id}
+                                                initialLikeCount={event.likes?.length || 0}
+                                                initialHasLiked={event.likes?.some((l: any) => l.userId === currentUserId) || false}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

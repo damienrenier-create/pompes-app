@@ -57,44 +57,91 @@ export default function FAQPage() {
                     </div>
                 </section>
 
-                {/* Section Niveaux / Animaux */}
+                {/* Section XP détaillée */}
+                <section className="space-y-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-yellow-100 rounded-xl text-yellow-600">
+                            <Zap size={20} />
+                        </div>
+                        <h3 className="text-xl font-black uppercase italic tracking-tight">Valeurs d'XP</h3>
+                    </div>
+                    <div className="bg-white rounded-[2rem] overflow-hidden shadow-sm border border-gray-100">
+                        <table className="w-full text-left text-sm border-collapse">
+                            <thead>
+                                <tr className="bg-gray-50 border-b border-gray-100">
+                                    <th className="px-6 py-4 font-black uppercase tracking-wider text-gray-400 text-[10px]">Action / Entité</th>
+                                    <th className="px-6 py-4 font-black uppercase tracking-wider text-gray-400 text-[10px]">Valeur XP</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50 font-bold">
+                                <tr>
+                                    <td className="px-6 py-4 text-gray-900">1 Pompe 💪</td>
+                                    <td className="px-6 py-4 text-blue-600">+1 XP</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4 text-gray-900">1 Traction 🦍</td>
+                                    <td className="px-6 py-4 text-blue-600">+3 XP</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4 text-gray-900">1 Squat 🦵</td>
+                                    <td className="px-6 py-4 text-blue-600">+1 XP</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4 text-gray-900">Objectif validé ✅</td>
+                                    <td className="px-6 py-4 text-green-600">+100 XP</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4 text-gray-900">Jour Parfait (Total = Cible) 🎯</td>
+                                    <td className="px-6 py-4 text-green-600">+200 XP</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4 text-gray-900">Bonus Flex (Au-delà de la cible) 🚀</td>
+                                    <td className="px-6 py-4 text-purple-600">Exponentiel (1-XP/rep+)</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4 text-gray-900">1€ d'amende payé 💸</td>
+                                    <td className="px-6 py-4 text-orange-600">+50 XP</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4 text-gray-900">Badge Compétitif / Évènement 🏅</td>
+                                    <td className="px-6 py-4 text-yellow-600">+500 à +3000 XP (selon mois)</td>
+                                </tr>
+                                <tr>
+                                    <td className="px-6 py-4 text-gray-900">Records (Jour/Mois/An) 🏆</td>
+                                    <td className="px-6 py-4 text-yellow-600">+250 / +1000 / +2500 XP</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                {/* Section Niveaux / Animaux - Le Bestiaire */}
                 <section className="space-y-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-green-100 rounded-xl text-green-600">
                             <Shield size={20} />
                         </div>
-                        <h3 className="text-xl font-black uppercase italic tracking-tight">Rangs & Animaux</h3>
+                        <h3 className="text-xl font-black uppercase italic tracking-tight">Le Bestiaire (100 Rangs)</h3>
                     </div>
-                    <div className="grid grid-cols-1 gap-4">
-                        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center gap-6">
-                            <div className="text-4xl">🦠</div>
-                            <div>
-                                <span className="block font-black text-xs text-gray-400 uppercase tracking-widest">Niveau 1-10</span>
-                                <h4 className="font-black text-lg text-gray-900">Les Micro-Organismes</h4>
-                                <p className="text-xs font-bold text-gray-500 mt-1">
-                                    Tardigrades, Amibes... Tu commences petit, mais tu es increvable.
-                                </p>
+                    <p className="text-gray-500 font-bold text-xs px-2">
+                        Voici la hiérarchie sacrée du Pompes App. Chaque niveau franchi te rapproche de la divinité.
+                    </p>
+                    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 h-96 overflow-y-auto no-scrollbar space-y-2">
+                        {[
+                            { lvl: 1, n: "Moustique", e: "🦟" }, { lvl: 10, n: "Axolotl", e: "🦎" }, { lvl: 20, n: "Hibou grand-duc", e: "🦉" },
+                            { lvl: 30, n: "Loutre", e: "🦦" }, { lvl: 40, n: "Capybara", e: "🐹" }, { lvl: 50, n: "Jaguar", e: "🐆" },
+                            { lvl: 60, n: "Manchot empereur", e: "🐧" }, { lvl: 70, n: "Requin blanc", e: "🦈" }, { lvl: 80, n: "Requin-baleine", e: "🦈" },
+                            { lvl: 90, n: "Pieuvre géante", e: "🐙" }, { lvl: 100, n: "Léviathan", e: "🐋" }
+                        ].map(m => (
+                            <div key={m.lvl} className="flex items-center gap-4 p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                                <span className="w-10 font-black text-gray-400 text-xs">Lv.{m.lvl}</span>
+                                <span className="text-2xl">{m.e}</span>
+                                <span className="font-black text-gray-900 uppercase tracking-tighter">{m.n}</span>
                             </div>
-                        </div>
-                        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center gap-6">
-                            <div className="text-4xl">🦊</div>
-                            <div>
-                                <span className="block font-black text-xs text-gray-400 uppercase tracking-widest">Niveau 30-50</span>
-                                <h4 className="font-black text-lg text-gray-900">Les Prédateurs</h4>
-                                <p className="text-xs font-bold text-gray-500 mt-1">
-                                    Renards, Loups... Tu as du flair et tu ne lâches jamais ta proie.
-                                </p>
-                            </div>
-                        </div>
-                        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center gap-6">
-                            <div className="text-4xl">🦖</div>
-                            <div>
-                                <span className="block font-black text-xs text-gray-400 uppercase tracking-widest">Niveau 80+</span>
-                                <h4 className="font-black text-lg text-gray-900">Les Légendes</h4>
-                                <p className="text-xs font-bold text-gray-500 mt-1">
-                                    Dragons, Rorquals Bleus... Tu es au sommet de la chaîne alimentaire.
-                                </p>
-                            </div>
+                        ))}
+                        <div className="text-center py-4">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">... et bien d'autres entre chaque palier !</p>
+                            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-1">91: Licorne 🦄 | 95: Phénix 🔥 | 98: Dragon 🐉</p>
                         </div>
                     </div>
                 </section>

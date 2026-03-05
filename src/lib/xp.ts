@@ -293,6 +293,50 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
         const xpNextLvl = getXPForLevel(level + 1);
         const progress = Math.min(100, Math.max(0, ((totalXP - xpCurrentLvl) / (xpNextLvl - xpCurrentLvl)) * 100));
 
+        // Details Breakdown for Gazette
+        const repsXP = (pushups * 1) + (pullups * 3) + (squats * 1);
+        const finesXP = (finesAmount * 50);
+        
+        // Calculate Badge XP separately to match the logic above
+        let badgesXP = 0;
+        userBadges.forEach(b => {
+            const def = BADGE_DEFINITIONS.find(d => d.key === b.badgeKey);
+            if (def) {
+                const monthIndex = b.achievedAt ? new Date(b.achievedAt).getMonth() : new Date().getMonth();
+                const timeBonus = MONTH_MULTIPLIERS[monthIndex] || 500;
+                if (def.type === "COMPETITIVE") badgesXP += timeBonus;
+                else if (def.type === "LEGENDARY") {
+                    if (def.key === "unique_pushups_50") badgesXP += 1000;
+                    if (def.key === "unique_pushups_80") badgesXP += 2500;
+                    if (def.key === "unique_pushups_100") badgesXP += 5000;
+                    if (def.key === "legendary_pullups_20") badgesXP += 3000;
+                    if (def.key === "legendary_pullups_30") badgesXP += 7500;
+                    if (def.key === "legendary_squats_150") badgesXP += 2000;
+                    if (def.key === "legendary_squats_300") badgesXP += 8000;
+                } else if (def.type === "MILESTONE") {
+                    if (def.metricType === "MILESTONE_TOTAL" && def.threshold) badgesXP += Math.floor(def.threshold * 0.25);
+                    else badgesXP += 100;
+                    if (["survivor_15d", "survivor_30d", "survivor_60d", "survivor_90d", "survivor_120d", "sprinter_1", "sprinter_5", "sprinter_10", "sprinter_30", "sprinter_50", "sprinter_100"].includes(def.key)) {
+                         // Add extra if matching certain keys
+                         if (def.key === "survivor_15d") badgesXP += 500;
+                         if (def.key === "survivor_30d") badgesXP += 1500;
+                         if (def.key === "survivor_60d") badgesXP += 3500;
+                         if (def.key === "survivor_90d") badgesXP += 5000;
+                         if (def.key === "survivor_120d") badgesXP += 10000;
+                         if (def.key === "sprinter_1") badgesXP += 100;
+                         if (def.key === "sprinter_5") badgesXP += 250;
+                         if (def.key === "sprinter_10") badgesXP += 500;
+                         if (def.key === "sprinter_30") badgesXP += 1500;
+                         if (def.key === "sprinter_50") badgesXP += 3000;
+                         if (def.key === "sprinter_100") badgesXP += 7500;
+                    }
+                } else if (def.type === "EVENT") badgesXP += timeBonus;
+            }
+        });
+
+        const recordsXP = (u.id === maxVolDayUser ? 250 : 0) + (u.id === maxVolMonthUser ? 1000 : 0) + (u.id === maxVolYearUser ? 2500 : 0);
+        const flexXP = totalXP - repsXP - finesXP - badgesXP - recordsXP; // Residual is Flex/Regularity
+
         xpUserMap.set(u.id, {
             id: u.id,
             nickname: u.nickname,
@@ -305,7 +349,14 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
             nextEmoji: nextDetails.emoji,
             xpCurrentLvl,
             xpNextLvl,
-            progress: Math.floor(progress)
+            progress: Math.floor(progress),
+            details: {
+                repsXP,
+                finesXP,
+                badgesXP,
+                recordsXP,
+                flexXP: Math.max(0, flexXP)
+            }
         });
     });
 
