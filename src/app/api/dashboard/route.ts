@@ -61,15 +61,30 @@ export async function GET(req: Request) {
 
             for (const d of fineDates) {
                 const existingFine = u.fines?.find((f: any) => f.date === d);
-                if (existingFine) continue;
+                // We no longer continue here to allow checking for fine deletion if reps were added later.
 
+                // --- Exemption Check ---
+                let isExempt = false;
                 if (u.buyoutPaid && u.buyoutPaidAt) {
                     const buyoutDay = formatDateISO(new Date(u.buyoutPaidAt));
-                    if (buyoutDay <= d) continue;
+                    if (buyoutDay <= d) isExempt = true;
                 }
 
-                const hasCert = u.medicalCertificates?.some((c: any) => d >= c.startDateISO && d <= c.endDateISO);
-                if (hasCert) continue;
+                if (!isExempt) {
+                    const hasCert = u.medicalCertificates?.some((c: any) => d >= c.startDateISO && d <= c.endDateISO);
+                    if (hasCert) isExempt = true;
+                }
+
+                // If exempt but has a fine, delete it
+                if (isExempt) {
+                    if (existingFine && existingFine.status === 'unpaid') {
+                        try {
+                            await (prisma as any).fineRecord.delete({ where: { id: existingFine.id } });
+                            u.fines = u.fines.filter((f: any) => f.id !== existingFine.id);
+                        } catch (e) { }
+                    }
+                    continue;
+                }
 
                 const daySets = u.sets?.filter((s: any) => s.date === d) || [];
                 const dayTotal = daySets
@@ -81,18 +96,29 @@ export async function GET(req: Request) {
 
                 const req = getRequiredRepsForDate(d);
 
-                if (dayTotal < req) {
-                    try {
-                        await (prisma as any).fineRecord.create({
-                            data: {
-                                userId: u.id,
-                                date: d,
-                                amountEur: getFineAmountForMonth(d)
-                            }
-                        });
-                        if (!u.fines) u.fines = [];
-                        u.fines.push({ date: d, amountEur: getFineAmountForMonth(d), status: 'unpaid' });
-                    } catch (e) { }
+                if (existingFine) {
+                    // If fine exists but requirement met, delete it
+                    if (dayTotal >= req && existingFine.status === 'unpaid') {
+                        try {
+                            await (prisma as any).fineRecord.delete({ where: { id: existingFine.id } });
+                            u.fines = u.fines.filter((f: any) => f.id !== existingFine.id);
+                        } catch (e) { }
+                    }
+                } else {
+                    // No fine exists, but requirement NOT met, create it
+                    if (dayTotal < req) {
+                        try {
+                            const newFine = await (prisma as any).fineRecord.create({
+                                data: {
+                                    userId: u.id,
+                                    date: d,
+                                    amountEur: getFineAmountForMonth(d)
+                                }
+                            });
+                            if (!u.fines) u.fines = [];
+                            u.fines.push(newFine);
+                        } catch (e) { }
+                    }
                 }
             }
         }
