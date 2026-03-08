@@ -186,7 +186,7 @@ export default function ChallengeDashboard() {
             if (res.ok) {
                 // Perform a re-login with the SAME identity to refresh the JWT with the new league
                 await signIn("credentials", {
-                    identifier: (session?.user as any)?.nickname || (session?.user as any)?.email,
+                    identifier: (session?.user as any)?.name || (session?.user as any)?.email,
                     code: "switched",
                     redirect: true,
                     callbackUrl: window.location.pathname + window.location.search
@@ -494,7 +494,7 @@ export default function ChallengeDashboard() {
                             <div className="flex flex-col items-end gap-2">
                                 <span className="text-white font-black text-xl tracking-tight">Lv. {data.xp.currentUser.level}</span>
                                 <div className="flex gap-2">
-                                    {((session?.user as any)?.nickname === 'Dam' || (session?.user as any)?.league === 'GAINAGE') && (
+                                    {((session?.user as any)?.name === 'Dam' || (session?.user as any)?.email === 'damien.renier@gmail.com' || (session?.user as any)?.league === 'GAINAGE') && (
                                         <button
                                             onClick={handleSwitchEgo}
                                             className="flex items-center gap-1.5 text-emerald-400 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all group"
