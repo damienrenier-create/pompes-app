@@ -176,21 +176,20 @@ export default function ChallengeDashboard() {
     }
 
     const handleSwitchEgo = async () => {
-        if (!confirm("Basculer vers votre profil Alter Ego ?")) return;
+        const currentLeague = (session?.user as any)?.league || "POMPES";
+        const targetVerse = currentLeague === "GAINAGE" ? "Pompes" : "Gainage";
+
+        if (!confirm(`Basculer vers le verse ${targetVerse} ?`)) return;
         setLoading(true);
         try {
             const res = await fetch("/api/auth/switch-ego", { method: "POST" });
             if (res.ok) {
-                const { targetIdentifier } = await res.json();
-                // Perform a re-login with the new identifier
-                // In this app, we know the password is just length check, 
-                // but we might need the user to confirm. 
-                // Let's try to just redirect to login with a hint or use signIn directly.
+                // Perform a re-login with the SAME identity to refresh the JWT with the new league
                 await signIn("credentials", {
-                    identifier: targetIdentifier,
-                    code: "switched", // Placeholder since we don't have the real code, but the backend just checks length
+                    identifier: (session?.user as any)?.nickname || (session?.user as any)?.email,
+                    code: "switched",
                     redirect: true,
-                    callbackUrl: "/"
+                    callbackUrl: window.location.pathname + window.location.search
                 });
             } else {
                 const d = await res.json();
@@ -495,13 +494,15 @@ export default function ChallengeDashboard() {
                             <div className="flex flex-col items-end gap-2">
                                 <span className="text-white font-black text-xl tracking-tight">Lv. {data.xp.currentUser.level}</span>
                                 <div className="flex gap-2">
-                                    {(session?.user as any)?.alterEgoId && (
+                                    {((session?.user as any)?.nickname === 'Dam' || (session?.user as any)?.league === 'GAINAGE') && (
                                         <button
                                             onClick={handleSwitchEgo}
                                             className="flex items-center gap-1.5 text-emerald-400 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all group"
-                                            title="Basculer vers Alter Ego"
+                                            title="Basculer de Verse"
                                         >
-                                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Alter Ego</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                                                {(session?.user as any)?.league === 'GAINAGE' ? 'Verse Pompes' : 'Verse Gainage'}
+                                            </span>
                                             <span className="text-sm">🔄</span>
                                         </button>
                                     )}

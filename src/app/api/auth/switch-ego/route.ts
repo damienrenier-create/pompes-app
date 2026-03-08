@@ -22,29 +22,26 @@ export async function POST(req: Request) {
 
         const user = await (prisma.user as any).findUnique({
             where: { id: session.user.id },
-            select: { alterEgoId: true }
+            select: { league: true }
         });
 
-        if (!user || !user.alterEgoId) {
-            return NextResponse.json({ message: "Pas d'Alter Ego lié" }, { status: 400 });
+        if (!user) {
+            return NextResponse.json({ message: "Utilisateur introuvable" }, { status: 404 });
         }
 
-        const alterEgo = await (prisma.user as any).findUnique({
-            where: { id: user.alterEgoId },
-            select: { nickname: true, email: true }
+        const newLeague = user.league === "GAINAGE" ? "POMPES" : "GAINAGE";
+
+        await (prisma.user as any).update({
+            where: { id: session.user.id },
+            data: { league: newLeague }
         });
 
-        if (!alterEgo) {
-            return NextResponse.json({ message: "Profil Alter Ego introuvable" }, { status: 404 });
-        }
-
-        // Return the identifier to use for the next login
         return NextResponse.json({
             success: true,
-            targetIdentifier: alterEgo.nickname || alterEgo.email
+            newLeague
         });
     } catch (error) {
-        console.error("Switch Ego Error:", error);
+        console.error("Toggle League Error:", error);
         return NextResponse.json({ message: "Erreur serveur" }, { status: 500 });
     }
 }

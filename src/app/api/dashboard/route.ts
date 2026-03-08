@@ -57,6 +57,7 @@ export async function GET(req: Request) {
 
         for (const u of allUsers) {
             if (u.nickname === 'modo') continue;
+            const uLeague = (u as any).league || "POMPES";
 
             for (const d of fineDates) {
                 const existingFine = u.fines?.find((f: any) => f.date === d);
@@ -71,7 +72,13 @@ export async function GET(req: Request) {
                 if (hasCert) continue;
 
                 const daySets = u.sets?.filter((s: any) => s.date === d) || [];
-                const dayTotal = daySets.reduce((sum: number, s: any) => sum + s.reps, 0);
+                const dayTotal = daySets
+                    .filter((s: any) => {
+                        if (uLeague === "GAINAGE") return s.exercise === "PLANK";
+                        return ["PUSHUP", "PULLUP", "SQUAT"].includes(s.exercise);
+                    })
+                    .reduce((sum: number, s: any) => sum + s.reps, 0);
+
                 const req = getRequiredRepsForDate(d);
 
                 if (dayTotal < req) {
@@ -122,7 +129,13 @@ export async function GET(req: Request) {
             for (let i = dates30.length - 1; i >= 0; i--) {
                 const d = dates30[i];
                 const daySets = uSets.filter((s: any) => s.date === d);
-                const dayTotal = daySets.reduce((sum: number, s: any) => sum + s.reps, 0);
+                const dayTotal = daySets
+                    .filter((s: any) => {
+                        if (u.league === "GAINAGE") return s.exercise === "PLANK";
+                        return ["PUSHUP", "PULLUP", "SQUAT"].includes(s.exercise);
+                    })
+                    .reduce((sum: number, s: any) => sum + s.reps, 0);
+
                 const req = getRequiredRepsForDate(d);
 
                 // For rate/streak, injury or buyout counts as "completed" or "excused"
@@ -419,7 +432,12 @@ export async function GET(req: Request) {
                 pullups: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PULLUP").reduce((sum: number, s: any) => sum + s.reps, 0),
                 squats: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "SQUAT").reduce((sum: number, s: any) => sum + s.reps, 0),
                 planks: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PLANK").reduce((sum: number, s: any) => sum + s.reps, 0),
-                total: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate).reduce((sum: number, s: any) => sum + s.reps, 0)
+                total: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate)
+                    .filter((s: any) => {
+                        if (league === "GAINAGE") return s.exercise === "PLANK";
+                        return ["PUSHUP", "PULLUP", "SQUAT"].includes(s.exercise);
+                    })
+                    .reduce((sum: number, s: any) => sum + s.reps, 0)
             },
             leaderboard: leaderboard.map(({ sets, ...rest }) => rest),
             records: recordsData,

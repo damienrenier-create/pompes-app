@@ -176,24 +176,29 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
         let totalXP = 0;
         const sets = u.sets || [];
         const summary = summaries.find(s => s.id === u.id);
-
-        // A. Reps
         const pushups = sets.filter((s: any) => s.exercise === "PUSHUP").reduce((sum: number, s: any) => sum + s.reps, 0);
         const pullups = sets.filter((s: any) => s.exercise === "PULLUP").reduce((sum: number, s: any) => sum + s.reps, 0);
         const squats = sets.filter((s: any) => s.exercise === "SQUAT").reduce((sum: number, s: any) => sum + s.reps, 0);
+        const planks = sets.filter((s: any) => s.exercise === "PLANK").reduce((sum: number, s: any) => sum + s.reps, 0);
 
+        const league = u.league || "POMPES";
         const marvinBonusDate = "2026-03-08";
         const isMarvinDay = todayStr === marvinBonusDate;
 
-        const pushupsXP = pushups * (isMarvinDay ? 2 : 1);
-        const pullupsXP = pullups * (isMarvinDay ? 6 : 3);
-        const squatsXP = squats * (isMarvinDay ? 2 : 1);
+        let pushupsXPContribution = 0;
+        let pullupsXPContribution = 0;
+        let squatsXPContribution = 0;
+        let planksXPContribution = 0;
 
-        // Gainage (Plank) : 1 XP per second
-        const planks = sets.filter((s: any) => s.exercise === "PLANK").reduce((sum: number, s: any) => sum + s.reps, 0);
-        const planksXP = planks * (isMarvinDay ? 2 : 1);
-
-        totalXP += pushupsXP + pullupsXP + squatsXP + planksXP;
+        if (league === "GAINAGE") {
+            planksXPContribution = planks * (isMarvinDay ? 2 : 1);
+            totalXP += planksXPContribution;
+        } else {
+            pushupsXPContribution = pushups * (isMarvinDay ? 2 : 1);
+            pullupsXPContribution = pullups * (isMarvinDay ? 6 : 3);
+            squatsXPContribution = squats * (isMarvinDay ? 2 : 1);
+            totalXP += pushupsXPContribution + pullupsXPContribution + squatsXPContribution;
+        }
 
         // B. Régularité et Flex par Jour
         const days = Array.from(new Set(sets.map((s: any) => s.date))).sort() as string[];
@@ -301,11 +306,7 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
         const progress = Math.min(100, Math.max(0, ((totalXP - xpCurrentLvl) / (xpNextLvl - xpCurrentLvl)) * 100));
 
         // Details Breakdown for Gazette
-        const pushupsXPSummary = (pushups * (isMarvinDay ? 2 : 1));
-        const pullupsXPSummary = (pullups * (isMarvinDay ? 6 : 3));
-        const squatsXPSummary = (squats * (isMarvinDay ? 2 : 1));
-        const planksXPSummary = (planks * (isMarvinDay ? 2 : 1));
-        const repsXP = pushupsXPSummary + pullupsXPSummary + squatsXPSummary + planksXPSummary;
+        const repsXP = pushupsXPContribution + pullupsXPContribution + squatsXPContribution + planksXPContribution;
         const finesXP = (finesAmount * 50);
 
         // Calculate Badge XP separately to match the logic above
