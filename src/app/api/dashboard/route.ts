@@ -196,6 +196,7 @@ export async function GET(req: Request) {
                 sprinterCount: allSprinterEvents.filter((ev: any) => ev.toUserId === u.id).length,
                 repsToday: uSets.filter((s: any) => s.date === today).reduce((sum: number, s: any) => sum + s.reps, 0),
                 finesDueEur: (u.fines || []).filter((f: any) => f.status === "unpaid").reduce((sum: number, f: any) => sum + f.amountEur, 0),
+                finesPaidEur: (u.fines || []).filter((f: any) => f.status === "paid").reduce((sum: number, f: any) => sum + f.amountEur, 0),
                 potEventsEur: (u.potEvents || []).reduce((sum: number, e: any) => sum + e.amountEur, 0),
                 league: (u as any).league,
                 sets: uSets
@@ -317,7 +318,7 @@ export async function GET(req: Request) {
         availableSpecialDays = availableSpecialDays.sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
 
         // Cagnotte Rewards Suggestions
-        const potEur = leaderboard.reduce((sum, u) => sum + u.finesDueEur + (u.potEventsEur || 0), 0);
+        const potEur = leaderboard.reduce((sum, u) => sum + u.finesDueEur + u.finesPaidEur + (u.potEventsEur || 0), 0);
         const rewardsTiers = [
             { min: 0, label: "Encore un effort 😄" },
             { min: 2, label: "Un pain au chocolat" },
