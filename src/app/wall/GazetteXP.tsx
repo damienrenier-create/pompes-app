@@ -23,7 +23,7 @@ const PHRASES = {
     FLYING: [
         "Il s'envole littéralement vers la victoire ! En engrangeant {XP} XP ({REASON}), le voilà couronné [{ANIMAL}]. 🦅",
         "En arrachant {XP} XP ({REASON}), il déploie enfin ses ailes et devient un magnifique [{ANIMAL}]. Direction les sommets ! 🌪️",
-        "Un bond dans les airs ! Propulsé par {XP} XP ({REASON}), sa mutation en [{ANIMAL}] laisse la concurrence au sol. 🪽"
+        "Un bond dans les airs ! Propulsé par {XP} XP ({REASON}), sa mutation en [{ANIMAL}] laisse la concurrence au sol. 🚀"
     ],
     AGILE: [
         "Son agilité a fait la différence : {XP} XP remportés ({REASON}) ! La concurrence est bluffée, le voilà [{ANIMAL}]. 🦊",
@@ -43,7 +43,7 @@ const PHRASES = {
     MARINE: [
         "Il nage en plein succès ! Avec {XP} XP repêchés ({REASON}), le voilà transformé en [{ANIMAL}]. 🌊",
         "Depuis les abysses, il jaillit pour s'emparer du niveau [{ANIMAL}], poussé par une vague de {XP} XP ({REASON}). 🦈",
-        "Un vrai monstre marin en approche ! Les {XP} XP récoltés ({REASON}) valident son grade de [{ANIMAL}]. 🫧"
+        "Un vrai monstre marin en approche ! Les {XP} XP récoltés ({REASON}) valident son grade de [{ANIMAL}]. 🐙"
     ],
     MYTHICAL: [
         "Nous entrons dans les mythes fondateurs... En terrassant le jeu de {XP} XP ({REASON}), il transcende l'humanité pour devenir [{ANIMAL}]. 🔥",
@@ -102,68 +102,67 @@ function getPhrase(eventId: string, isLevelUp: boolean, animal: string, reason: 
 export default async function GazetteXP() {
     const session = await getServerSession(authOptions);
     const currentUserId = session?.user?.id;
+    const league = (session?.user as any)?.league || "POMPES";
+
+    const allUsers = await (prisma.user as any).findMany({
+        where: {
+            nickname: { not: 'modo' },
+            league: league
+        },
+        select: { id: true, nickname: true, sets: true, createdAt: true, xpAdjustments: true }
+    });
+    const badgeOwnerships = await (prisma as any).badgeOwnership.findMany();
+    const xpScores = calculateAllUsersXP(allUsers, badgeOwnerships);
 
     const rawEvents = await (prisma as any).badgeEvent.findMany({
-        where: { eventType: { in: ["LEVEL_UP", "LEVEL_DOWN"] } },
+        where: {
+            eventType: { in: ["LEVEL_UP", "LEVEL_DOWN"] },
+            toUser: { league: league }
+        },
         orderBy: { createdAt: "desc" },
-        take: 50,
         include: {
-            toUser: {
-                select: { nickname: true }
-            },
             likes: true
         }
     });
 
-    const seenUsers = new Set();
-    const events: any[] = [];
-    for (const e of rawEvents) {
-        if (!seenUsers.has(e.toUserId)) {
-            seenUsers.add(e.toUserId);
-            events.push(e);
-            if (events.length >= 5) break;
-        }
-    }
+    const displayEvents = xpScores.map(userXP => {
+        // Find the latest real event for this user
+        const realEvent = rawEvents.find((e: any) => e.toUserId === userXP.id);
 
-    const isEmpty = !events || events.length === 0;
-
-    let displayEvents = events;
-
-    // S'il n'y a encore aucun événement de niveau enregistré en base de données, on génère un Top 3 rétroactif.
-    if (isEmpty) {
-        const allUsers = await prisma.user.findMany({
-            where: { nickname: { not: 'modo' } },
-            select: { id: true, nickname: true, sets: true }
-        });
-        const badgeOwnerships = await (prisma as any).badgeOwnership.findMany();
-        const xpScores = calculateAllUsersXP(allUsers, badgeOwnerships);
-
-        const top3 = xpScores.sort((a, b) => b.totalXP - a.totalXP).slice(0, 3);
-
-        displayEvents = top3.map((userXP, idx) => {
-            let reasonsArr = [];
-            if (userXP.details?.rawXP > 0) reasonsArr.push(`un entraînement acharné (+${Math.round(userXP.details.rawXP)} XP)`);
-            if (userXP.details?.volumeBadgeXP > 0) reasonsArr.push(`des badges de volume (+${Math.round(userXP.details.volumeBadgeXP)} XP)`);
-            if (userXP.details?.seriesBonusXP > 0) reasonsArr.push(`des bonus Flex (+${Math.round(userXP.details.seriesBonusXP)} XP)`);
-            if (userXP.details?.recordsXP > 0) reasonsArr.push(`de multiples records (+${Math.round(userXP.details.recordsXP)} XP)`);
-
-            const reason = reasonsArr.length > 0 ? `grâce à : ` + reasonsArr.join(", ") : "pour l'ensemble de sa carrière majestueuse";
-
+        if (realEvent) {
             return {
-                id: `fallback-${userXP.id}`,
-                toUser: { nickname: userXP.nickname },
-                newValue: userXP.level,
-                eventType: "LEVEL_UP",
-                createdAt: new Date(Date.now() - idx * 3600000).toISOString(),
-                metadata: JSON.stringify({
-                    animal: userXP.animal,
-                    emoji: userXP.emoji,
-                    xpDiff: Math.round(userXP.totalXP),
-                    reason: reason
-                })
+                ...realEvent,
+                toUser: { nickname: userXP.nickname }, // Ensure nickname is present
+                // We keep the real event as is
             };
-        });
-    }
+        }
+
+        // Fallback: Generate a simulated event based on current status
+        const reasonsArr = [];
+        if (userXP.details?.repsXP > 0) reasonsArr.push(`un entraînement acharné (+${Math.round(userXP.details.repsXP)} XP)`);
+        if (userXP.details?.badgesXP > 0) reasonsArr.push(`des badges et trophées (+${Math.round(userXP.details.badgesXP)} XP)`);
+        if (userXP.details?.flexXP > 0) reasonsArr.push(`un bonus de régularité Flex (+${Math.round(userXP.details.flexXP)} XP)`);
+        if (userXP.details?.recordsXP > 0) reasonsArr.push(`un record majestueux (+${Math.round(userXP.details.recordsXP)} XP)`);
+        if (userXP.details?.manualXP !== 0) reasonsArr.push(`un ajustement manuel (${userXP.details.manualXP > 0 ? '+' : ''}${Math.round(userXP.details.manualXP)} XP)`);
+
+        const reason = reasonsArr.length > 0 ? `grâce à : ` + reasonsArr.join(", ") : "pour l'ensemble de son parcours";
+
+        return {
+            id: `fallback-${userXP.id}`,
+            toUserId: userXP.id,
+            toUser: { nickname: userXP.nickname },
+            newValue: userXP.level,
+            eventType: "LEVEL_UP",
+            createdAt: userXP.createdAt || new Date().toISOString(),
+            likes: [],
+            metadata: JSON.stringify({
+                animal: userXP.animal,
+                emoji: userXP.emoji,
+                xpDiff: Math.round(userXP.totalXP),
+                reason: reason
+            })
+        };
+    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return (
         <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-900 rounded-[2rem] p-6 sm:p-8 shadow-xl border border-indigo-500/20 relative overflow-hidden mt-8">

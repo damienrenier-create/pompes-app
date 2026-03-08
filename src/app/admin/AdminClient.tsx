@@ -24,7 +24,12 @@ export default function AdminClient({ user }: { user: any }) {
         nickname: user.nickname,
         isAdmin: user.isAdmin,
         buyoutPaid: user.buyoutPaid,
+        league: user.league,
     });
+
+    const [xpAdj, setXpAdj] = useState({ amount: "", reason: "", date: new Date().toISOString().split('T')[0] });
+    const [badgeKeyToReset, setBadgeKeyToReset] = useState("");
+    const [alterEgoIdToLink, setAlterEgoIdToLink] = useState("");
 
     const deleteSet = async (setId: string) => {
         if (!confirm("Supprimer cette série ? Action irréversible.")) return;
@@ -154,6 +159,57 @@ export default function AdminClient({ user }: { user: any }) {
         }
     };
 
+    const handleXpAdjustment = async () => {
+        if (!xpAdj.amount || !xpAdj.reason) return alert("Données invalides");
+        setLoading("xp-adj");
+        try {
+            const res = await fetch("/api/admin/xp-adjustment", {
+                method: "POST",
+                body: JSON.stringify({ userId: user.id, ...xpAdj }),
+            });
+            if (res.ok) {
+                alert("XP ajustée !");
+                setXpAdj({ amount: "", reason: "", date: new Date().toISOString().split('T')[0] });
+                router.refresh();
+            } else alert("Erreur lors de l'ajustement");
+        } catch (e) { alert("Erreur réseau"); }
+        finally { setLoading(null); }
+    };
+
+    const handleResetBadge = async () => {
+        if (!badgeKeyToReset) return alert("Sélectionnez un badge");
+        if (!confirm(`Réinitialiser le badge ${badgeKeyToReset} pour ${user.nickname} ?`)) return;
+        setLoading("badge-reset");
+        try {
+            const res = await fetch("/api/admin/badges/reset", {
+                method: "POST",
+                body: JSON.stringify({ userId: user.id, badgeKey: badgeKeyToReset }),
+            });
+            if (res.ok) {
+                alert("Badge réinitialisé !");
+                setBadgeKeyToReset("");
+                router.refresh();
+            } else alert("Erreur lors de la réinitialisation");
+        } catch (e) { alert("Erreur réseau"); }
+        finally { setLoading(null); }
+    };
+
+    const handleLinkAlterEgo = async () => {
+        if (!alterEgoIdToLink) return alert("ID Alter Ego requis");
+        setLoading("link-ego");
+        try {
+            const res = await fetch("/api/admin/update-user", {
+                method: "POST",
+                body: JSON.stringify({ userId: user.id, alterEgoId: alterEgoIdToLink }),
+            });
+            if (res.ok) {
+                alert("Alter Ego lié !");
+                router.refresh();
+            } else alert("Erreur lors du lien");
+        } catch (e) { alert("Erreur réseau"); }
+        finally { setLoading(null); }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-slate-900 text-white p-6 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
@@ -174,9 +230,20 @@ export default function AdminClient({ user }: { user: any }) {
                                 className="w-4 h-4 rounded border-white/20 bg-white/10"
                             />
                         </div>
+                        <div className="flex items-center gap-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase">League:</label>
+                            <select
+                                value={profileData.league}
+                                onChange={e => setProfileData({ ...profileData, league: e.target.value })}
+                                className="bg-white/10 text-[10px] font-black uppercase rounded border border-white/20 outline-none focus:bg-white/20 transition-all"
+                            >
+                                <option value="POMPES" className="bg-slate-900">POMPES</option>
+                                <option value="GAINAGE" className="bg-slate-900">GAINAGE</option>
+                            </select>
+                        </div>
                     </div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                        ID: {user.id} • {user.email}
+                        ID: {user.id} • {user.email} {user.alterEgoId ? `• Alter Ego: ${user.alterEgoId}` : ""}
                     </p>
                 </div>
                 <button
@@ -312,6 +379,41 @@ export default function AdminClient({ user }: { user: any }) {
                                 Aucune amende trouvée.
                             </p>
                         )}
+                    </div>
+                </section>
+            </div>
+
+            {/* MODERATOR TOOLS */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <section className="bg-slate-50 rounded-3xl p-6 border border-slate-200">
+                    <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest mb-4">Ajustement XP</h3>
+                    <div className="space-y-3">
+                        <input type="number" placeholder="Montant (ex: 500 ou -200)" value={xpAdj.amount} onChange={e => setXpAdj({ ...xpAdj, amount: e.target.value })} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 outline-none" />
+                        <input type="text" placeholder="Raison" value={xpAdj.reason} onChange={e => setXpAdj({ ...xpAdj, reason: e.target.value })} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 outline-none" />
+                        <button onClick={handleXpAdjustment} disabled={loading === "xp-adj"} className="w-full py-2 bg-indigo-600 text-white font-bold text-xs uppercase rounded-xl hover:bg-indigo-700 disabled:opacity-50">Appliquer XP</button>
+                    </div>
+                </section>
+
+                <section className="bg-slate-50 rounded-3xl p-6 border border-slate-200">
+                    <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest mb-4">Reset Badge</h3>
+                    <div className="space-y-3">
+                        <select value={badgeKeyToReset} onChange={e => setBadgeKeyToReset(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 outline-none">
+                            <option value="">Sélectionner un badge...</option>
+                            <option value="unique_pushups_100">Premier 100 Pompes</option>
+                            <option value="unique_pushups_80">Premier 80 Pompes</option>
+                            <option value="unique_pushups_50">Premier 50 Pompes</option>
+                            <option value="legendary_pullups_30">Traction God (30)</option>
+                            <option value="legendary_pullups_20">Traction Master (20)</option>
+                        </select>
+                        <button onClick={handleResetBadge} disabled={loading === "badge-reset"} className="w-full py-2 bg-red-600 text-white font-bold text-xs uppercase rounded-xl hover:bg-red-700 disabled:opacity-50">Réinitialiser Badge</button>
+                    </div>
+                </section>
+
+                <section className="bg-slate-50 rounded-3xl p-6 border border-slate-200">
+                    <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest mb-4">Lien Alter-Ego</h3>
+                    <div className="space-y-3">
+                        <input type="text" placeholder="UserID de l'Alter Ego" value={alterEgoIdToLink} onChange={e => setAlterEgoIdToLink(e.target.value)} className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 outline-none" />
+                        <button onClick={handleLinkAlterEgo} disabled={loading === "link-ego"} className="w-full py-2 bg-emerald-600 text-white font-bold text-xs uppercase rounded-xl hover:bg-emerald-700 disabled:opacity-50">Lier l'Alter Ego</button>
                     </div>
                 </section>
             </div>

@@ -29,6 +29,7 @@ export async function GET(req: Request) {
         const selectedDate = searchParams.get("date") || getTodayISO();
         const today = getTodayISO();
         const userId = session.user.id;
+        const league = (session.user as any).league || "POMPES";
 
         // --- 1. Fetch data for last 30 days (personal + group) ---
         const last30DaysRange = [];
@@ -37,13 +38,17 @@ export async function GET(req: Request) {
         const startDate30 = formatDateISO(d30);
 
         const allUsers = (await (prisma.user as any).findMany({
-            where: { nickname: { not: 'modo' } },
+            where: {
+                nickname: { not: 'modo' },
+                league: league
+            },
             include: {
                 sets: true,
                 fines: true,
                 sallyUps: true,
                 medicalCertificates: true,
-                potEvents: true
+                potEvents: true,
+                xpAdjustments: true
             }
         })) as any[];
 
@@ -100,7 +105,8 @@ export async function GET(req: Request) {
             const totalPushupsAllTime = uSets.filter((s: any) => s.exercise === "PUSHUP").reduce((sum: number, s: any) => sum + s.reps, 0);
             const totalPullupsAllTime = uSets.filter((s: any) => s.exercise === "PULLUP").reduce((sum: number, s: any) => sum + s.reps, 0);
             const totalSquatsAllTime = uSets.filter((s: any) => s.exercise === "SQUAT").reduce((sum: number, s: any) => sum + s.reps, 0);
-            const totalRepsAllTime = totalPushupsAllTime + totalPullupsAllTime + totalSquatsAllTime;
+            const totalPlanksAllTime = uSets.filter((s: any) => s.exercise === "PLANK").reduce((sum: number, s: any) => sum + s.reps, 0);
+            const totalRepsAllTime = totalPushupsAllTime + totalPullupsAllTime + totalSquatsAllTime + totalPlanksAllTime;
 
             const isInjured = u.medicalCertificates?.some((c: any) => today >= c.startDateISO && today <= c.endDateISO);
             const currentMedicalNote = u.medicalCertificates?.find((c: any) => today >= c.startDateISO && today <= c.endDateISO)?.note || null;
@@ -143,14 +149,16 @@ export async function GET(req: Request) {
                 streakCurrent: currentStreak,
                 totalPerfectDays,
                 maxSingleSet,
-                totalRepsAllTime,
                 totalPushupsAllTime,
                 totalPullupsAllTime,
                 totalSquatsAllTime,
+                totalPlanksAllTime,
+                totalRepsAllTime,
                 sprinterCount: allSprinterEvents.filter((ev: any) => ev.toUserId === u.id).length,
                 repsToday: uSets.filter((s: any) => s.date === today).reduce((sum: number, s: any) => sum + s.reps, 0),
                 finesDueEur: (u.fines || []).filter((f: any) => f.status === "unpaid").reduce((sum: number, f: any) => sum + f.amountEur, 0),
                 potEventsEur: (u.potEvents || []).reduce((sum: number, e: any) => sum + e.amountEur, 0),
+                league: (u as any).league,
                 sets: uSets
             };
         }).sort((a, b) => b.completionRate - a.completionRate || b.streakCurrent - a.streakCurrent || b.totalRepsAllTime - a.totalRepsAllTime);
@@ -162,7 +170,7 @@ export async function GET(req: Request) {
             { id: "month", filter: (s: any) => s.date.startsWith(today.substring(0, 7)) },
             { id: "year", filter: (s: any) => s.date.startsWith(today.substring(0, 4)) },
         ];
-        const exTypes = ["PUSHUP", "PULLUP", "SQUAT"] as const;
+        const exTypes = ["PUSHUP", "PULLUP", "SQUAT", "PLANK"] as const;
         const recordsData: any = {};
 
         for (const p of periods) {
@@ -172,7 +180,7 @@ export async function GET(req: Request) {
                     ...s,
                     userId: u.id,
                     nickname: u.nickname,
-                    userTotalEx: ex === "PUSHUP" ? u.totalPushupsAllTime : ex === "PULLUP" ? u.totalPullupsAllTime : u.totalSquatsAllTime
+                    userTotalEx: ex === "PUSHUP" ? u.totalPushupsAllTime : ex === "PULLUP" ? u.totalPullupsAllTime : ex === "SQUAT" ? u.totalSquatsAllTime : u.totalPlanksAllTime
                 })));
 
                 // Calcul du Volume Top 3
@@ -404,11 +412,13 @@ export async function GET(req: Request) {
                 pushups: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PUSHUP").map((s: any) => s.reps),
                 pullups: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PULLUP").map((s: any) => s.reps),
                 squats: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "SQUAT").map((s: any) => s.reps),
+                planks: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PLANK").map((s: any) => s.reps),
             },
             totalsSelected: {
                 pushups: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PUSHUP").reduce((sum: number, s: any) => sum + s.reps, 0),
                 pullups: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PULLUP").reduce((sum: number, s: any) => sum + s.reps, 0),
                 squats: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "SQUAT").reduce((sum: number, s: any) => sum + s.reps, 0),
+                planks: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate && s.exercise === "PLANK").reduce((sum: number, s: any) => sum + s.reps, 0),
                 total: (currentUserLB?.sets || []).filter((s: any) => s.date === selectedDate).reduce((sum: number, s: any) => sum + s.reps, 0)
             },
             leaderboard: leaderboard.map(({ sets, ...rest }) => rest),

@@ -18,14 +18,18 @@ export default async function LeaderboardPage({
 
     const { exercise = "XP" } = await searchParams;
     const selectedExercise = (exercise as string).toUpperCase();
+    const league = (session.user as any).league || "POMPES";
 
     let leaderboard: any[] = [];
     let totalGroupReps = 0;
 
     if (selectedExercise === "XP") {
-        const allUsers = await prisma.user.findMany({
-            where: { nickname: { not: 'modo' } },
-            select: { id: true, nickname: true, sets: true } // FORCE TO GET NICKNAME
+        const allUsers = await (prisma.user as any).findMany({
+            where: {
+                nickname: { not: 'modo' },
+                league: league
+            },
+            include: { sets: true, xpAdjustments: true } // FORCE TO GET NICKNAME
         });
         const badgeOwnerships = await (prisma as any).badgeOwnership.findMany();
         const xpScores = calculateAllUsersXP(allUsers, badgeOwnerships);
@@ -34,9 +38,9 @@ export default async function LeaderboardPage({
         const maxXP = xpScores.length > 0 ? xpScores[0].totalXP : 1;
 
         totalGroupReps = xpScores.reduce((sum, entry) => sum + entry.totalXP, 0);
-        leaderboard = xpScores.map(x => {
+        leaderboard = xpScores.map((x: any) => {
             // Re-bind the nickname safely from the allUsers array in case it slipped out
-            const safeNickname = allUsers.find(u => u.id === x.id)?.nickname || "Inconnu";
+            const safeNickname = allUsers.find((u: any) => u.id === x.id)?.nickname || "Inconnu";
             return {
                 userId: x.id,
                 nickname: safeNickname,
@@ -52,31 +56,39 @@ export default async function LeaderboardPage({
             };
         }).sort((a: any, b: any) => b.totalReps - a.totalReps);
     } else {
-        // Query 1: Group by userId and sum reps
-        const logs = await prisma.exerciseSet.groupBy({
-            by: ["userId"],
-            where: selectedExercise === "ALL" ? {} : {
-                exercise: selectedExercise,
-            },
-            _sum: {
-                reps: true,
-            },
-        });
-
         // Query 2: Fetch all relevant users to get nicknames
-        const users = await prisma.user.findMany({
-            where: { nickname: { not: 'modo' } },
+        const users = await (prisma.user as any).findMany({
+            where: {
+                nickname: { not: 'modo' },
+                league: league
+            },
             select: {
                 id: true,
                 nickname: true,
             },
         });
 
-        const userMap = new Map(users.map((u) => [u.id, u.nickname]));
+        const userIdsInLeague = users.map((u: any) => u.id);
+
+        // Query 1: Group by userId and sum reps
+        const logs = await prisma.exerciseSet.groupBy({
+            by: ["userId"],
+            where: {
+                userId: { in: userIdsInLeague },
+                ...(selectedExercise === "ALL" ? {} : {
+                    exercise: selectedExercise,
+                }),
+            },
+            _sum: {
+                reps: true,
+            },
+        });
+
+        const userMap = new Map(users.map((u: any) => [u.id, u.nickname]));
 
         // Combine data and sort by total reps desc
         leaderboard = logs
-            .map((log) => ({
+            .map((log: any) => ({
                 userId: log.userId,
                 nickname: userMap.get(log.userId) || "Inconnu",
                 totalReps: log._sum.reps || 0,

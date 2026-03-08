@@ -11,14 +11,14 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { userId, nickname, buyoutPaid } = body;
+        const { userId, nickname, buyoutPaid, league, alterEgoId } = body;
 
         if (!userId) {
             return NextResponse.json({ message: "userId manquant" }, { status: 400 });
         }
 
         if (nickname) {
-            const existing = await prisma.user.findFirst({
+            const existing = await (prisma.user as any).findFirst({
                 where: { nickname, NOT: { id: userId } }
             });
             if (existing) {
@@ -26,12 +26,14 @@ export async function POST(req: Request) {
             }
         }
 
-        await prisma.user.update({
+        await (prisma.user as any).update({
             where: { id: userId },
             data: {
                 nickname,
                 buyoutPaid,
                 buyoutPaidAt: buyoutPaid ? new Date() : null,
+                league,
+                alterEgoId: alterEgoId || null
             }
         });
 

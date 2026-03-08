@@ -10,7 +10,7 @@ export default function MoodFeed() {
         fetchStatuses()
     }, [])
 
-    const fetchStatuses = async () => {
+    async function fetchStatuses() {
         try {
             const res = await fetch("/api/status")
             if (res.ok) {

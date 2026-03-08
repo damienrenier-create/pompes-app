@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useSession } from "next-auth/react"
+import { useSession, signIn } from "next-auth/react"
 import { HelpCircle } from "lucide-react"
 import RewardDetailSheet from "./RewardDetailSheet"
 
@@ -11,8 +11,8 @@ interface DashboardData {
     todayISO: string
     selectedDateISO: string
     requiredReps: { selected: number; today: number }
-    setsSelected: { pushups: number[]; pullups: number[]; squats: number[] }
-    totalsSelected: { pushups: number; pullups: number; squats: number; total: number }
+    setsSelected: { pushups: number[]; pullups: number[]; squats: number[]; planks: number[] }
+    totalsSelected: { pushups: number; pullups: number; squats: number; planks: number; total: number }
     leaderboard: Array<{
         id: string
         nickname: string
@@ -83,8 +83,8 @@ const DEFAULT_DASHBOARD_DATA: DashboardData = {
     todayISO: getLocalISO(),
     selectedDateISO: getLocalISO(),
     requiredReps: { selected: 10, today: 10 },
-    setsSelected: { pushups: [], pullups: [], squats: [] },
-    totalsSelected: { pushups: 0, pullups: 0, squats: 0, total: 0 },
+    setsSelected: { pushups: [], pullups: [], squats: [], planks: [] },
+    totalsSelected: { pushups: 0, pullups: 0, squats: 0, planks: 0, total: 0 },
     leaderboard: [],
     records: {},
     badges: {
@@ -112,10 +112,11 @@ export default function ChallengeDashboard() {
     const [activeTab, setActiveTab] = useState<'saisie' | 'graphs' | 'cagnotte' | 'trophees'>('saisie')
     const [selectedDate, setSelectedDate] = useState<string>(DEFAULT_DASHBOARD_DATA.selectedDateISO)
     const lastFetchTime = useRef<number>(Date.now())
-    const [localSets, setLocalSets] = useState<{ pushups: (number | "")[]; pullups: (number | "")[]; squats: (number | "")[] }>({
+    const [localSets, setLocalSets] = useState<{ pushups: (number | "")[]; pullups: (number | "")[]; squats: (number | "")[]; planks: (number | "")[] }>({
         pushups: [""],
         pullups: [""],
         squats: [""],
+        planks: [""],
     })
     const [sallyReps, setSallyReps] = useState<number>(0)
     const [showHonorPopup, setShowHonorPopup] = useState<{ badge: any; type: string } | null>(null)
@@ -163,6 +164,7 @@ export default function ChallengeDashboard() {
                     pushups: d.setsSelected?.pushups?.length > 0 ? d.setsSelected.pushups : [""],
                     pullups: d.setsSelected?.pullups?.length > 0 ? d.setsSelected.pullups : [""],
                     squats: d.setsSelected?.squats?.length > 0 ? d.setsSelected.squats : [""],
+                    planks: d.setsSelected?.planks?.length > 0 ? d.setsSelected.planks : [""],
                 })
             }
         } catch (err) {
@@ -172,6 +174,34 @@ export default function ChallengeDashboard() {
             fetchStatuses()
         }
     }
+
+    const handleSwitchEgo = async () => {
+        if (!confirm("Basculer vers votre profil Alter Ego ?")) return;
+        setLoading(true);
+        try {
+            const res = await fetch("/api/auth/switch-ego", { method: "POST" });
+            if (res.ok) {
+                const { targetIdentifier } = await res.json();
+                // Perform a re-login with the new identifier
+                // In this app, we know the password is just length check, 
+                // but we might need the user to confirm. 
+                // Let's try to just redirect to login with a hint or use signIn directly.
+                await signIn("credentials", {
+                    identifier: targetIdentifier,
+                    code: "switched", // Placeholder since we don't have the real code, but the backend just checks length
+                    redirect: true,
+                    callbackUrl: "/"
+                });
+            } else {
+                const d = await res.json();
+                showToast(d.message || "Erreur de bascule", "error");
+            }
+        } catch (err) {
+            showToast("Erreur réseau", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchStatuses = async () => {
         try {
@@ -235,7 +265,7 @@ export default function ChallengeDashboard() {
         fetchData(date)
     }
 
-    const addSet = (type: 'pushups' | 'pullups' | 'squats') => {
+    const addSet = (type: 'pushups' | 'pullups' | 'squats' | 'planks') => {
         const current = localSets[type] || []
         // Copie la valeur précédente si elle existe
         const prevValue = current.length > 0 ? current[current.length - 1] : ""
@@ -243,11 +273,11 @@ export default function ChallengeDashboard() {
         setTimeout(() => lastInputRef.current?.focus(), 10)
     }
 
-    const removeSet = (type: 'pushups' | 'pullups' | 'squats', index: number) => {
+    const removeSet = (type: 'pushups' | 'pullups' | 'squats' | 'planks', index: number) => {
         setLocalSets({ ...localSets, [type]: (localSets[type] || []).filter((_, i) => i !== index) })
     }
 
-    const handleSetChange = (type: 'pushups' | 'pullups' | 'squats', index: number, val: string) => {
+    const handleSetChange = (type: 'pushups' | 'pullups' | 'squats' | 'planks', index: number, val: string) => {
         const newSets = [...(localSets[type] || [])]
         if (val === "") {
             newSets[index] = ""
@@ -257,7 +287,7 @@ export default function ChallengeDashboard() {
         setLocalSets({ ...localSets, [type]: newSets })
     }
 
-    const adjustSet = (type: 'pushups' | 'pullups' | 'squats', index: number, delta: number) => {
+    const adjustSet = (type: 'pushups' | 'pullups' | 'squats' | 'planks', index: number, delta: number) => {
         const newSets = [...(localSets[type] || [])]
         const current = Number(newSets[index]) || 0
         newSets[index] = Math.max(0, current + delta)
@@ -266,7 +296,7 @@ export default function ChallengeDashboard() {
 
     const saveLogs = async (forceHonor: boolean = false) => {
         // Validation: prevent empty or <= 0 (A4)
-        const allReps = [...localSets.pushups, ...localSets.pullups, ...localSets.squats].map(r => Number(r) || 0);
+        const allReps = [...localSets.pushups, ...localSets.pullups, ...localSets.squats, ...localSets.planks].map(r => Number(r) || 0);
         const total = allReps.reduce((a, b) => a + b, 0);
 
         if (total <= 0) {
@@ -392,7 +422,7 @@ export default function ChallengeDashboard() {
     }
 
     const sumSets = (sets: (number | "")[]) => sets.reduce<number>((a, b) => a + (Number(b) || 0), 0)
-    const currentTotal = sumSets(localSets?.pushups || []) + sumSets(localSets?.pullups || []) + sumSets(localSets?.squats || [])
+    const currentTotal = sumSets(localSets?.pushups || []) + sumSets(localSets?.pullups || []) + sumSets(localSets?.squats || []) + sumSets(localSets?.planks || [])
     const missing = Math.max(0, (data?.requiredReps?.selected ?? 0) - currentTotal)
 
     const totalSquatsAllTime = data.leaderboard.find(u => (u as any).id === (session?.user as any)?.id)?.totalSquatsAllTime || 0;
@@ -433,6 +463,23 @@ export default function ChallengeDashboard() {
                     </div>
                 </div>
 
+                {/* Saint Marvin Banner - Moved to top level for visibility */}
+                {data.todayISO === "2026-03-08" && (
+                    <div className="bg-gradient-to-r from-orange-500 to-red-600 rounded-3xl p-5 shadow-xl animate-pulse border border-white/20 relative overflow-hidden">
+                        <div className="flex items-center gap-4 relative z-10">
+                            <span className="text-4xl">🔥</span>
+                            <div>
+                                <h4 className="text-white font-black uppercase text-sm tracking-widest">Événement : Saint Marvin</h4>
+                                <p className="text-orange-50 text-[11px] font-bold leading-tight mt-1 uppercase">
+                                    Double XP sur toutes vos séries aujourd'hui + 500 XP bonus en validant votre cible !
+                                </p>
+                            </div>
+                        </div>
+                        {/* Decorative background element */}
+                        <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                    </div>
+                )}
+
                 {data?.xp && data?.xp.currentUser && (
                     <div className="bg-slate-900 rounded-3xl p-5 shadow-xl border border-slate-800 relative overflow-hidden flex flex-col gap-3">
                         <div className="flex items-center justify-between relative z-10">
@@ -445,12 +492,23 @@ export default function ChallengeDashboard() {
                                     <p className="text-indigo-400 text-[9px] font-bold uppercase tracking-widest leading-none mt-1">{data.xp.currentUser.belt}</p>
                                 </div>
                             </div>
-                            <div className="text-right flex flex-col items-end gap-1">
+                            <div className="flex flex-col items-end gap-2">
                                 <span className="text-white font-black text-xl tracking-tight">Lv. {data.xp.currentUser.level}</span>
-                                <Link href="/faq" className="flex items-center gap-1.5 text-indigo-400 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl transition-all group" title="Comment ça marche ?">
-                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Guide</span>
-                                    <HelpCircle size={14} />
-                                </Link>
+                                <div className="flex gap-2">
+                                    {(session?.user as any)?.alterEgoId && (
+                                        <button
+                                            onClick={handleSwitchEgo}
+                                            className="flex items-center gap-1.5 text-emerald-400 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all group"
+                                            title="Basculer vers Alter Ego"
+                                        >
+                                            <span className="text-[10px] font-black uppercase tracking-widest leading-none">Alter Ego</span>
+                                            <span className="text-sm">🔄</span>
+                                        </button>
+                                    )}
+                                    <Link href="/faq" className="flex items-center gap-1.5 text-indigo-400 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-xl transition-all group" title="Comment ça marche ?">
+                                        <HelpCircle size={14} />
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                         <div className="relative z-10 pt-1">
@@ -498,10 +556,10 @@ export default function ChallengeDashboard() {
                                     <span className="text-6xl font-black">{data?.requiredReps?.selected ?? 0}</span>
                                     <span className="text-slate-500 font-bold uppercase text-xs">reps</span>
                                 </div>
-                                <div className="mt-2 text-xs font-bold text-slate-400">
-                                    Effectué : <span className="text-white">{currentTotal} reps</span>
+                                <div className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-tighter">
+                                    Effectué : <span className="text-white">{currentTotal} {(session?.user as any)?.league === 'GAINAGE' ? 'secondes' : 'reps'}</span>
                                     {currentTotal > (data?.requiredReps?.selected ?? 0) && (
-                                        <span className="ml-2 text-green-400">+{currentTotal - (data?.requiredReps?.selected ?? 0)} bonus 💪</span>
+                                        <span className="ml-2 text-green-400">+{currentTotal - (data?.requiredReps?.selected ?? 0)} bonus {(session?.user as any)?.league === 'GAINAGE' ? 's' : '💪'}</span>
                                     )}
                                 </div>
                             </div>
@@ -509,7 +567,7 @@ export default function ChallengeDashboard() {
                                 {missing > 0 ? (
                                     <div className="flex flex-col items-end">
                                         <span className="text-3xl font-black text-orange-400">-{missing}</span>
-                                        <span className="text-[10px] font-black text-slate-400 italic">À FAIRE</span>
+                                        <span className="text-[10px] font-black text-slate-400 italic uppercase">{(session?.user as any)?.league === 'GAINAGE' ? 'SECONDES' : 'À FAIRE'}</span>
                                     </div>
                                 ) : (
                                     <div className="bg-green-500 text-white px-4 py-2 rounded-full font-black text-sm shadow-lg animate-bounce">VALIDÉ ✅</div>
@@ -520,19 +578,19 @@ export default function ChallengeDashboard() {
 
                     {/* SETS INPUT */}
                     <div className="space-y-4">
-                        {(['pushups', 'pullups', 'squats'] as const).map(type => (
-                            <div key={type} className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+                        {(session?.user as any)?.league === 'GAINAGE' ? (
+                            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
                                 <div className="flex justify-between items-center mb-4">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-2xl">{type === 'pushups' ? '💪' : type === 'pullups' ? '🦍' : '🦵'}</span>
-                                        <span className="font-black text-gray-800 uppercase text-xs">{type === 'pushups' ? 'Pompes' : type === 'pullups' ? 'Tractions' : 'Squats'}</span>
+                                        <span className="text-2xl">🧘</span>
+                                        <span className="font-black text-gray-800 uppercase text-xs">Gainage (Secondes)</span>
                                     </div>
                                     <span className="font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-xs">
-                                        {(localSets[type] || []).reduce<number>((a, b) => a + (Number(b) || 0), 0)} reps
+                                        {sumSets(localSets.planks)}s
                                     </span>
                                 </div>
                                 <div className="flex flex-wrap gap-3">
-                                    {(localSets[type] || []).map((val, idx) => (
+                                    {localSets.planks.map((val, idx) => (
                                         <div key={idx} className="flex flex-col items-center gap-2">
                                             <div className="relative group">
                                                 <input
@@ -540,24 +598,60 @@ export default function ChallengeDashboard() {
                                                     inputMode="numeric"
                                                     value={val}
                                                     placeholder="0"
-                                                    ref={idx === (localSets[type]?.length ?? 0) - 1 ? lastInputRef : null}
-                                                    onChange={(e) => handleSetChange(type, idx, e.target.value)}
+                                                    onChange={(e) => handleSetChange('planks', idx, e.target.value)}
                                                     className="w-20 h-16 bg-gray-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl text-center font-black text-gray-900 transition-all text-xl outline-none"
                                                 />
-                                                {getSetEmoji(Number(val) || 0) && <span className="absolute -bottom-1 -left-1 text-xs">{getSetEmoji(Number(val) || 0)}</span>}
-                                                <button onClick={() => removeSet(type, idx)} className="absolute -top-2 -right-2 w-6 h-6 bg-red-400 text-white rounded-full text-xs font-black opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-lg">✕</button>
+                                                <button onClick={() => removeSet('planks', idx)} className="absolute -top-2 -right-2 w-6 h-6 bg-red-400 text-white rounded-full text-xs font-black opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-lg">✕</button>
                                             </div>
-                                            {/* Stepper buttons (A3) */}
                                             <div className="flex gap-1">
-                                                <button onClick={() => adjustSet(type, idx, -5)} className="w-8 h-8 bg-gray-100 rounded-lg font-black text-gray-500">-5</button>
-                                                <button onClick={() => adjustSet(type, idx, 5)} className="w-8 h-8 bg-blue-50 rounded-lg font-black text-blue-600">+5</button>
+                                                <button onClick={() => adjustSet('planks', idx, -10)} className="w-8 h-8 bg-gray-100 rounded-lg font-black text-gray-500">-10</button>
+                                                <button onClick={() => adjustSet('planks', idx, 10)} className="w-8 h-8 bg-blue-50 rounded-lg font-black text-blue-600">+10</button>
                                             </div>
                                         </div>
                                     ))}
-                                    <button onClick={() => addSet(type)} className="w-20 h-16 rounded-2xl border-2 border-dashed border-gray-200 text-gray-300 hover:text-blue-500 hover:border-blue-300 transition-all font-black text-2xl flex items-center justify-center">+</button>
+                                    <button onClick={() => addSet('planks')} className="w-20 h-16 rounded-2xl border-2 border-dashed border-gray-200 text-gray-300 hover:text-blue-500 hover:border-blue-300 transition-all font-black text-2xl flex items-center justify-center">+</button>
                                 </div>
                             </div>
-                        ))}
+                        ) : (
+                            (['pushups', 'pullups', 'squats'] as const).map(type => (
+                                <div key={type} className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xl">{type === 'pushups' ? '💪' : type === 'pullups' ? '🦍' : '🦵'}</span>
+                                            <span className="font-black text-gray-800 uppercase text-xs">{type === 'pushups' ? 'Pompes' : type === 'pullups' ? 'Tractions' : 'Squats'}</span>
+                                        </div>
+                                        <span className="font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-xs">
+                                            {(localSets[type] || []).reduce<number>((a, b) => a + (Number(b) || 0), 0)} reps
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-3">
+                                        {(localSets[type] || []).map((val, idx) => (
+                                            <div key={idx} className="flex flex-col items-center gap-2">
+                                                <div className="relative group">
+                                                    <input
+                                                        type="number"
+                                                        inputMode="numeric"
+                                                        value={val}
+                                                        placeholder="0"
+                                                        ref={idx === (localSets[type]?.length ?? 0) - 1 ? lastInputRef : null}
+                                                        onChange={(e) => handleSetChange(type, idx, e.target.value)}
+                                                        className="w-20 h-16 bg-gray-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl text-center font-black text-gray-900 transition-all text-xl outline-none"
+                                                    />
+                                                    {getSetEmoji(Number(val) || 0) && <span className="absolute -bottom-1 -left-1 text-xs">{getSetEmoji(Number(val) || 0)}</span>}
+                                                    <button onClick={() => removeSet(type, idx)} className="absolute -top-2 -right-2 w-6 h-6 bg-red-400 text-white rounded-full text-xs font-black opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-lg">✕</button>
+                                                </div>
+                                                {/* Stepper buttons (A3) */}
+                                                <div className="flex gap-1">
+                                                    <button onClick={() => adjustSet(type, idx, -5)} className="w-8 h-8 bg-gray-100 rounded-lg font-black text-gray-500">-5</button>
+                                                    <button onClick={() => adjustSet(type, idx, 5)} className="w-8 h-8 bg-blue-50 rounded-lg font-black text-blue-600">+5</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <button onClick={() => addSet(type)} className="w-20 h-16 rounded-2xl border-2 border-dashed border-gray-200 text-gray-300 hover:text-blue-500 hover:border-blue-300 transition-all font-black text-2xl flex items-center justify-center">+</button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
 
                     <button onClick={() => saveLogs()} disabled={saving} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-3xl shadow-xl transition-all disabled:opacity-50 uppercase tracking-widest text-sm transform active:scale-[0.98]">

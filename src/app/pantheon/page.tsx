@@ -15,8 +15,8 @@ export default async function PantheonPage() {
     if (!session?.user?.id) redirect("/login");
 
     const userId = session.user.id;
+    const league = (session.user as any).league || "POMPES";
 
-    // Fetch all necessary data in parallel
     const [
         allUsers,
         badgeOwnerships,
@@ -24,20 +24,30 @@ export default async function PantheonPage() {
         badgeDefinitions,
     ] = await Promise.all([
         (prisma as any).user.findMany({
-            where: { nickname: { not: 'modo' } },
+            where: {
+                nickname: { not: 'modo' },
+                league: league
+            },
             include: {
                 sets: true,
                 fines: true,
                 badges: true,
+                xpAdjustments: true
             }
         }),
         (prisma as any).badgeOwnership.findMany({
+            where: {
+                currentUser: { league: league }
+            },
             include: {
                 currentUser: true,
                 badge: true,
             }
         }),
         (prisma as any).badgeEvent.findMany({
+            where: {
+                toUser: { league: league }
+            },
             take: 30,
             orderBy: { createdAt: "desc" },
             include: {

@@ -148,7 +148,7 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
     let maxVolMonth = 0, maxVolMonthUser: string | null = null;
     let maxVolYear = 0, maxVolYearUser: string | null = null;
 
-    let maxSumDay = 0; // The actual sum of day
+    const maxSumDay = 0; // The actual sum of day
 
     const now = new Date();
     const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -182,9 +182,18 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
         const pullups = sets.filter((s: any) => s.exercise === "PULLUP").reduce((sum: number, s: any) => sum + s.reps, 0);
         const squats = sets.filter((s: any) => s.exercise === "SQUAT").reduce((sum: number, s: any) => sum + s.reps, 0);
 
-        totalXP += pushups * 1;
-        totalXP += pullups * 3;
-        totalXP += squats * 1;
+        const marvinBonusDate = "2026-03-08";
+        const isMarvinDay = todayStr === marvinBonusDate;
+
+        const pushupsXP = pushups * (isMarvinDay ? 2 : 1);
+        const pullupsXP = pullups * (isMarvinDay ? 6 : 3);
+        const squatsXP = squats * (isMarvinDay ? 2 : 1);
+
+        // Gainage (Plank) : 1 XP per second
+        const planks = sets.filter((s: any) => s.exercise === "PLANK").reduce((sum: number, s: any) => sum + s.reps, 0);
+        const planksXP = planks * (isMarvinDay ? 2 : 1);
+
+        totalXP += pushupsXP + pullupsXP + squatsXP + planksXP;
 
         // B. Régularité et Flex par Jour
         const days = Array.from(new Set(sets.map((s: any) => s.date))).sort() as string[];
@@ -209,6 +218,11 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
                         flexXP += (tier + 1); // 1 XP pour les 10 premiers %, 2 XP pour les suivants...
                     }
                     totalXP += flexXP;
+                }
+
+                // Saint Marvin Validation Bonus
+                if (d === marvinBonusDate) {
+                    totalXP += 500;
                 }
             }
         });
@@ -274,7 +288,11 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
         if (u.id === maxVolMonthUser) totalXP += 1000;
         if (u.id === maxVolYearUser) totalXP += 2500;
 
-        // F. Final Level Calc
+        // F. Ajustements Manuels (Moderateur)
+        const manualXP = (u.xpAdjustments || []).reduce((acc: number, adj: any) => acc + adj.amount, 0);
+        totalXP += manualXP;
+
+        // G. Final Level Calc
         const level = calculateLevel(totalXP);
         const details = getLevelDetails(level);
         const nextDetails = getLevelDetails(level + 1);
@@ -283,7 +301,11 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
         const progress = Math.min(100, Math.max(0, ((totalXP - xpCurrentLvl) / (xpNextLvl - xpCurrentLvl)) * 100));
 
         // Details Breakdown for Gazette
-        const repsXP = (pushups * 1) + (pullups * 3) + (squats * 1);
+        const pushupsXPSummary = (pushups * (isMarvinDay ? 2 : 1));
+        const pullupsXPSummary = (pullups * (isMarvinDay ? 6 : 3));
+        const squatsXPSummary = (squats * (isMarvinDay ? 2 : 1));
+        const planksXPSummary = (planks * (isMarvinDay ? 2 : 1));
+        const repsXP = pushupsXPSummary + pullupsXPSummary + squatsXPSummary + planksXPSummary;
         const finesXP = (finesAmount * 50);
 
         // Calculate Badge XP separately to match the logic above
@@ -344,7 +366,8 @@ export function calculateAllUsersXP(users: any[], badgesOwnerships: any[]) {
                 finesXP,
                 badgesXP,
                 recordsXP,
-                flexXP: Math.max(0, flexXP)
+                flexXP: Math.max(0, flexXP),
+                manualXP
             }
         });
     });
